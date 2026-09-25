@@ -26,7 +26,9 @@ public final class RelectureDtos {
      * Corps de POST /api/relectures/{id}. relecteurId est optionnel (le contrat
      * ne le prévoit pas) : fourni par l'écran relecteur pour la vérification RG3
      * (auto-relecture → 403) en l'absence d'authentification.
+     * note est un BigDecimal pour qu'un décimal (15.5) atteigne la validation
+     * métier et renvoie NOTE_INVALIDE au lieu d'un 400 de désérialisation.
      */
-    public record RelectureCreation(Integer note, String commentaire, Long relecteurId) {
+    public record RelectureCreation(java.math.BigDecimal note, String commentaire, Long relecteurId) {
     }
 }
