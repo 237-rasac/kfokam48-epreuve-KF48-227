@@ -5,11 +5,14 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.backend.domaine.AssignedBy;
 import com.example.backend.domaine.Etudiant;
 import com.example.backend.domaine.Exercice;
 import com.example.backend.domaine.Presence;
 import com.example.backend.domaine.Relecture;
+import com.example.backend.erreur.ErreurMetierException;
 import com.example.backend.repository.ExerciceRepository;
+import com.example.backend.repository.EtudiantRepository;
 import com.example.backend.repository.PresenceRepository;
 import com.example.backend.repository.RelectureRepository;
 
@@ -26,12 +29,16 @@ public class RelectureService {
 
     private final PresenceRepository presences;
     private final RelectureRepository relectures;
+    private final ExerciceRepository exercices;
+    private final EtudiantRepository etudiants;
     private final GenerateurCode hasard;
 
     public RelectureService(PresenceRepository presences, RelectureRepository relectures,
-            GenerateurCode hasard) {
+            ExerciceRepository exercices, EtudiantRepository etudiants, GenerateurCode hasard) {
         this.presences = presences;
         this.relectures = relectures;
+        this.exercices = exercices;
+        this.etudiants = etudiants;
         this.hasard = hasard;
     }
 
@@ -65,7 +72,42 @@ public class RelectureService {
         }
 
         Etudiant elu = pool.get(hasard.indiceAleatoire(pool.size()));
-        relectures.save(new Relecture(exercice, elu));
+        relectures.save(new Relecture(exercice, elu, AssignedBy.SYSTEME));
+    }
+
+    /**
+     * MODULE 10 (issue #22) — assignation manuelle du relecteur par le formateur :
+     * débloque un exercice resté sans relecteur (RG8).
+     * - relecteurId = auteur → 400 (RG3)
+     * - exercice déjà avec relecteur → 409 EXERCICE_DEJA_DEPOSE ? Non : 409 dédié
+     * - exercice inconnu / relecteur inconnu → 404
+     * L'exercice reste EN_ATTENTE (statut contractuel) ; la relecture créée porte
+     * assignedBy = FORMATEUR.
+     */
+    @Transactional
+    public Relecture assignerManuellement(Long exerciceId, Long relecteurId) {
+        Exercice exercice = exercices.findById(exerciceId)
+                .orElseThrow(() -> new ErreurMetierException("EXERCICE_INCONNU", 404, "Exercice inconnu."));
+        Etudiant relecteur = etudiants.findById(relecteurId)
+                .orElseThrow(() -> new ErreurMetierException("ETUDIANT_INCONNU", 404, "Étudiant inconnu."));
+
+        // RG3 : le relecteur ne peut pas être l'auteur (400, cf. issue #22)
+        if (memeEtudiant(relecteur, exercice.getEtudiant())) {
+            throw new ErreurMetierException("AUTO_RELECTURE", 400,
+                    "Le relecteur ne peut pas être l'auteur de l'exercice.");
+        }
+        // RG4 : un seul relecteur par exercice
+        if (relectures.findByExerciceId(exerciceId).isPresent()) {
+            throw new ErreurMetierException("RELECTURE_DEJA_ASSIGNEE", 409,
+                    "Cet exercice a déjà un relecteur.");
+        }
+        // L'issue #22 vise les exercices sans relecteur ; la session clôturée reste
+        // une borne : plus aucune action n'est acceptée après clôture (EF8)
+        if (exercice.getSession().estCloturee()) {
+            throw new ErreurMetierException("SESSION_CLOTUREE", 410, "La session est clôturée.");
+        }
+
+        return relectures.save(new Relecture(exercice, relecteur, AssignedBy.FORMATEUR));
     }
 
     /** Même étudiant : par id si les deux sont persistés, sinon par référence (tests unitaires). */
