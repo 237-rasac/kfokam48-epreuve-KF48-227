@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: kfokam48-db
+    environment:
+      POSTGRES_DB: kfokam48
+      POSTGRES_USER: kfokam48
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kfokam48}
+    ports:
+      - "5433:5432"
+    volumes:
+      - kfokam48-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kfokam48 -d kfokam48"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: kfokam48-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Dans le réseau Docker, l'hôte est le nom du service "db", port interne 5432
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/kfokam48
+      SPRING_DATASOURCE_USERNAME: kfokam48
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-kfokam48}
+    ports:
+      - "8080:8080"
+
+volumes:
+  kfokam48-pgdata:
