@@ -60,7 +60,7 @@ La direction de la formation KFOKAM48 veut outiller le suivi des sessions de cou
 
 | Réf | Exigence | Comment on la vérifie |
 |---|---|---|
-| ENF1 | Temps de réponse inférieur à 2 secondes pour le tableau | Test manuel avec 100 étudiants |
+| ENF1 | Temps de réponse inférieur à 2 secondes pour le tableau | Test manuel avec 100 étudiants — **sacrifiée** (enveloppe étape 3, voir journal) |
 | ENF2 | Usage mobile responsive | Test sur largeur 375 px |
 | ENF3 | Volumétrie : 500 étudiants, 50 sessions, 5000 présences | Jeu de données de démonstration |
 | ENF4 | Les erreurs renvoient un JSON avec code et message, jamais de stack trace | Test avec un code invalide |
