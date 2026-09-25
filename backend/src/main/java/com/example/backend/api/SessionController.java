@@ -36,4 +36,10 @@ public class SessionController {
     public SessionDto getSession(@PathVariable Long id) {
         return SessionDto.de(sessionService.trouver(id));
     }
+
+    /** MODULE 9 — EF8 : clôturer une session (200 / 404 SESSION_INCONNUE / 409 SESSION_DEJA_CLOTUREE). */
+    @PostMapping("/api/sessions/{id}/cloture")
+    public SessionDto cloturerSession(@PathVariable Long id) {
+        return SessionDto.de(sessionService.cloturer(id));
+    }
 }
