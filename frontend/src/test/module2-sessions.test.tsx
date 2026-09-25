@@ -28,6 +28,16 @@ const serveur = setupServer(
       promotionId: 1,
     }),
   ),
+  // MODULE 8 — l'écran formateur affiche le tableau de bord (EF6) : il faut le handler
+  http.get('/api/tableau', () =>
+    Response.json([
+      { etudiantId: 1, nom: 'Amina Bello', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+      { etudiantId: 2, nom: 'Boris Kamdem', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+      { etudiantId: 3, nom: 'Clarisse Ngo', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+      { etudiantId: 4, nom: 'David Etoundi', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+      { etudiantId: 5, nom: 'Emma Fouda', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+    ]),
+  ),
 )
 
 beforeAll(() => serveur.listen({ onUnhandledRequest: 'error' }))
