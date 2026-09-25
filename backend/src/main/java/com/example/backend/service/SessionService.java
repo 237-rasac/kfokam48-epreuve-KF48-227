@@ -59,6 +59,23 @@ public class SessionService {
                 .orElseThrow(() -> new ErreurMetierException("SESSION_INCONNUE", 404, "Session inconnue."));
     }
 
+    /**
+     * MODULE 9 — EF8/RG2 : clôturer une session. clotureAt est posé, plus aucune
+     * présence (RG2), dépôt (RG9), rendu ou modification de relecture (EF9) n'est
+     * accepté ensuite — les services aval vérifient déjà estCloturee().
+     * Session déjà clôturée → 409 SESSION_DEJA_CLOTUREE (catalogue du contrat).
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public SessionCours cloturer(Long id) {
+        SessionCours session = trouver(id);
+        if (session.estCloturee()) {
+            throw new ErreurMetierException("SESSION_DEJA_CLOTUREE", 409,
+                    "La session est déjà clôturée.");
+        }
+        session.setClotureAt(horloge.maintenant());
+        return sessions.save(session);
+    }
+
     /** Codes déjà pris, pour le générateur (RG16). */
     private String genererCodeUnique() {
         List<String> existants = sessions.findAll().stream().map(SessionCours::getCode).toList();
