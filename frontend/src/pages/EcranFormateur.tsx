@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import type { Promotion, Session } from '@/api/types'
-import { ouvrirSession } from '@/api/endpoints'
+import { cloturerSession, ouvrirSession } from '@/api/endpoints'
 import { ApiError } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import {
@@ -49,22 +49,80 @@ function useCompteARebours(expirationAt: string | null): string {
   return reste
 }
 
-function CarteSessionOuverte({ session }: { session: Session }) {
+function CarteSession({ session, onCloture }: { session: Session; onCloture: (session: Session) => void }) {
   const reste = useCompteARebours(session.expirationAt)
+  const [confirmation, setConfirmation] = useState(false)
+  const [enCours, setEnCours] = useState(false)
+  const [erreur, setErreur] = useState<string | null>(null)
+  const cloturee = session.clotureAt !== null
+
+  const cloturer = async () => {
+    setEnCours(true)
+    setErreur(null)
+    try {
+      const sessionCloturee = await cloturerSession(session.id)
+      onCloture(sessionCloturee)
+    } catch (error) {
+      const code = error instanceof ApiError ? error.code : 'INATTENDU'
+      const detail = error instanceof ApiError ? error.message : String(error)
+      setErreur(`[${code}] ${detail}`)
+    } finally {
+      setEnCours(false)
+      setConfirmation(false)
+    }
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Session ouverte : {session.titre}</CardTitle>
-        <CardDescription>Transmets ce code à tes étudiants.</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          {cloturee ? 'Session clôturée : ' : 'Session ouverte : '}
+          {session.titre}
+          {cloturee && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              ❄ gelée
+            </span>
+          )}
+        </CardTitle>
+        <CardDescription>
+          {cloturee
+            ? 'Plus aucune présence, dépôt ou relecture n\'est accepté (EF8).'
+            : 'Transmets ce code à tes étudiants.'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <p className="text-center font-mono text-4xl font-bold tracking-[0.3em]" aria-live="polite">
           {session.code}
         </p>
-        <p className="mt-3 text-center text-sm text-muted-foreground">
-          Expire dans <span className="font-semibold text-foreground">{reste}</span> ·{' '}
-          {new Date(session.expirationAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-        </p>
+        {!cloturee && (
+          <>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              Expire dans <span className="font-semibold text-foreground">{reste}</span> ·{' '}
+              {new Date(session.expirationAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            {!confirmation ? (
+              <Button
+                variant="destructive"
+                className="mt-4 w-full"
+                onClick={() => setConfirmation(true)}
+              >
+                Clôturer la session
+              </Button>
+            ) : (
+              <div className="mt-4 flex gap-2">
+                <Button variant="destructive" className="flex-1" onClick={cloturer} disabled={enCours}>
+                  {enCours ? 'Clôture…' : 'Confirmer la clôture'}
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setConfirmation(false)}>
+                  Annuler
+                </Button>
+              </div>
+            )}
+            {erreur && (
+              <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">❌ {erreur}</p>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   )
@@ -150,7 +208,10 @@ export function EcranFormateur({ promotions, etudiants, onChangerEcran }: EcranF
 
       {etat.kind === 'ok' && (
         <>
-          <CarteSessionOuverte session={etat.session} />
+          <CarteSession
+            session={etat.session}
+            onCloture={(sessionCloturee) => setEtat({ kind: 'ok', session: sessionCloturee })}
+          />
           <PanelPresencesSession session={etat.session} etudiants={etudiants} />
         </>
       )}
