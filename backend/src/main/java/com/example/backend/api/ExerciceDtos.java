@@ -20,7 +20,9 @@ public final class ExerciceDtos {
                     exercice.getEtudiant().getId(),
                     exercice.getLien(),
                     exercice.getStatut().name(),
-                    exercice.getDeposeAt().toString(),
+                    // date-time du contrat (RFC 3339), comme SessionDtos
+                    exercice.getDeposeAt().atZone(java.time.ZoneId.systemDefault())
+                            .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                     exercice.getRelecture() != null);
         }
     }

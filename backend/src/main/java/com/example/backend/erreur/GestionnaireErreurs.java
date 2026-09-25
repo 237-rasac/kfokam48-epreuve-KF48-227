@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -54,6 +55,13 @@ public class GestionnaireErreurs {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ReponseErreur> traiterRouteInconnue(NoResourceFoundException exception) {
         return repondre(HttpStatus.NOT_FOUND, "RESSOURCE_INCONNUE", "Ressource inconnue.");
+    }
+
+    /** Verbe non supporté sur une route existante → 405 sous le format du contrat. */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ReponseErreur> traiterVerbeNonSupporte(HttpRequestMethodNotSupportedException exception) {
+        return repondre(HttpStatus.METHOD_NOT_ALLOWED, "METHODE_NON_SUPPORTEE",
+                "Méthode non autorisée sur cette ressource.");
     }
 
     /** Filet de sécurité : toute erreur non prévue renvoie le format du contrat, sans stack trace. */
