@@ -86,10 +86,11 @@ function App() {
         />
       )}
 
-      {vue === 'etudiant' && (
+      {vue === 'etudiant' && etudiantCourant && (
         <div className="flex w-full max-w-md flex-col gap-4">
           <EcranEtudiant
-            nomEtudiant={etudiantCourant?.nom ?? 'étudiant'}
+            etudiantId={etudiantCourant.id}
+            nomEtudiant={etudiantCourant.nom}
             onChangerEcran={setVue}
           />
           <Button variant="secondary" onClick={() => setVue('relecteur')}>
