@@ -72,3 +72,99 @@
 - Documenter les migrations Flyway.
 - Définir les contrats API avant l'implémentation des ressources métier.
 - Compléter les scénarios de recette et les tests associés.
+
+### Organisation du développement (MODULES 1 et 2)
+
+- Ouverture des issues MODULE 1 à 10 (#13 à #22), milestone Sprint 1, gabarit
+  Backend / Frontend / Tests / Critères d'acceptation, références EF/RG.
+- Workflow adopté pour chaque module : branche `feat/module-N-slug`, commit
+  backend, commit frontend, PR « Closes #N », merge sur `main` (branches
+  conservées après le MODULE 4), vérification E2E contre la stack Docker.
+- **MODULE 1 (#13, PR #23)** : socle technique — entités JPA calées sur V1,
+  repositories, gestion d'erreur contractuelle (`ErreurMetierException`,
+  `ReponseErreur`, `GestionnaireErreurs`), référentiel promotions/étudiants.
+  Côté front : écran de sélection d'identité (pas d'auth au périmètre), écrans
+  formateur / étudiant / relecteur, hook `useReferentiel`.
+- **MODULE 2 (#14, PR #24)** : `POST /api/sessions` (EF1) avec code unique
+  (RG16) et expiration 15 min (RG1), `HorlogeMetier` et `GenerateurCode`
+  injectables, écran formateur avec compte à rebours.
+- **Bug corrigé (migration V3)** : les inserts à id explicite de V2 ne
+  reculaient pas les séquences — le premier POST sur `/api/sessions` violait
+  la clé primaire (constaté sur H2, probable aussi sur PostgreSQL). V3 recale
+  les six séquences après les données de démo.
+- **Bug corrigé (dates)** : les horodatages sérialisés en `LocalDateTime.toString()`
+  perdaient secondes et fuseau — le compte à rebours affichait 00:00 dès que le
+  conteneur (UTC) et le navigateur (UTC+1) étaient décalés. Passage au format
+  date-time du contrat (RFC 3339) + test unitaire RG1 à horloge figée.
+
+### MODULES 3 et 4 (#15, #16 — présences)
+
+- **MODULE 3 (PR #25)** : `POST /api/presences` (EF2) avec tous les codes du
+  contrat (`CODE_INCONNU`, `CODE_EXPIRE`, `DEJA_PRESENT`, `SESSION_CLOTUREE`)
+  et blocage EF12/RG14 : `CompteurErreursCode` en mémoire (seuil 5, blocage
+  2 min, remise à zéro au code valide), 429 `ETUDIANT_BLOQUE`. Écran étudiant
+  avec les messages d'erreur distingués. Choix documenté : compteur en mémoire,
+  aucune table imposée par le contrat, application mono-poste formateur.
+- **MODULE 4 (PR #26)** : `source=FORMATEUR` sur `POST /api/presences`
+  (EF7/RG11). Arbitrage : la voie formateur outrepasse l'expiration (RG1) et le
+  blocage (EF12) — c'est le sens d'un rattrapage manuel ; clôture (RG2) et
+  unicité (RG15) restent valables. Panneau formateur avec badge « ajouté par
+  le formateur ».
+
+### MODULES 5 et 6 (#17, #18 — exercices et relectures)
+
+- **MODULE 5 (PR #27)** : dépôt d'exercice (EF3) avec assignation aléatoire du
+  relecteur (EF4) — pool = présents hors auteur (RG3/RG5), hors relecteurs
+  actifs de la session ; pool vide → exercice EN_ATTENTE sans relecture (RG8).
+  Arbitrage : le statut `EN_ATTENTE_SANS_RELECTEUR` demandé par l'issue n'existe
+  ni dans le contrat ni dans V1 ; le cahier §7 tranche (« reste EN_ATTENTE ») —
+  la réponse porte un flag `relecteurAssignee`. Remplacement du lien (EF10/RG10)
+  et consultation EF11 (note + commentaire, jamais le relecteur).
+- **MODULE 6 (PR #28)** : `POST /api/relectures/{id}` (EF5) — note entière
+  0–20 (RG6), 403 `AUTO_RELECTURE` (RG3, vérifiée aussi sur le `relecteurId` du
+  corps puisque pas d'auth), 409 `RELECTURE_DEJA_RENDUE`, l'exercice passe à
+  RELU. Écran relecteur : liste des assignations + formulaire note/commentaire.
+
+### MODULES 7 à 10 (#19 à #22 — finalisation du Sprint 1)
+
+- **MODULE 7 (PR #29)** : modification de relecture avant clôture (EF9/RG7).
+  Migration V4 `relecture_historique` (anciennes et nouvelles valeurs).
+  Arbitrage : après clôture le contrat impose 409 `RELECTURE_VERROUILLEE` (l'issue
+  citait `SESSION_CLOTUREE`) — le contrat s'impose à la lettre. Écran relecteur :
+  section « déjà rendues » avec formulaire pré-rempli.
+- **MODULE 8 (PR #30)** : `GET /api/tableau?promotionId=` (EF6/RG13/RG21) —
+  une ligne par étudiant, moyenne null si aucune note (front : « — »), champ
+  `exercicesSansRelecteur` (extension du contrat, cohérente avec MODULE 5).
+  Tableau formateur réel remplaçant la simple liste.
+- **MODULE 9 (PR #31)** : `POST /api/sessions/{id}/cloture` (EF8) — chemin et
+  codes du contrat (`SESSION_DEJA_CLOTUREE`). Verrouillage aval déjà en place
+  depuis les modules 3/5/7 : présences et dépôts → 410, relectures → 409
+  `RELECTURE_VERROUILLEE`. UI : bouton Clôturer avec confirmation, badge « gelée ».
+- **MODULE 10 (PR #32)** : `POST /api/exercices/{id}/assigner` — assignation
+  manuelle du relecteur avec `assignedBy=FORMATEUR` (migration V5), 400
+  auto-assignation, 409 `RELECTURE_DEJA_ASSIGNEE`. `GET
+  /api/sessions/{id}/exercices-sans-relecteur` + panel formateur « débloquer
+  en un clic ». À partir du MODULE 4, la consigne est de ne plus écrire de
+  nouveaux tests : seuls les builds et les suites existantes (55 backend,
+  26 frontend) sont maintenus verts.
+
+### Jalon v0.1 et passe E2E complète
+
+- Rebuild complet de la stack Docker (`docker compose up -d --build`),
+  migrations V1→V5 appliquées sur PostgreSQL 16 réel.
+- Scénario complet joué par API (formateur / étudiant / relecteur) : référentiel,
+  ouverture de session, présences manuelles, présence par code, doublon 409,
+  dépôt avec assignation, EF11, remplacement du lien, rendu de relecture,
+  modification EF9, EF11 relu, tableau (moyenne 17,0 pour l'étudiante test),
+  clôture et verrouillage complet, blocage EF12 → 429.
+- **Bug trouvé et corrigé** : une note décimale (`15.5`) était rejetée par la
+  désérialisation Jackson avec le code `CHAMP_MANQUANT` au lieu de
+  `NOTE_INVALIDE` (RG6). Correctif : champ désérialisé en `BigDecimal` et
+  validation métier de l'intégralité (15.5 → 400 `NOTE_INVALIDE`, 15.0 accepté).
+  E2E re-joué : tout est vert.
+- Commit `verification` puis commit vide `[JALON] v0.1` posé sur `main`.
+- Rédaction des livrables manquants : `README.md` (démarrage en 3 commandes,
+  architecture, règles RG, API, tests) et `CHANGELOG.md` (Keep a Changelog,
+  version 0.1.0) — PR #33.
+- État du Sprint 1 : 10/10 issues MODULE fermées, EF1–EF12 couvertes, branches
+  de modules conservées, PR #23 à #33 fusionnées.
