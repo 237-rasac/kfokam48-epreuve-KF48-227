@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { VueEcran } from '../App'
 import { EcranTableau } from './EcranTableau'
+import { PanelPresencesSession } from './PanelPresencesSession'
 
 interface EcranFormateurProps {
   promotions: Promotion[]
@@ -146,7 +147,12 @@ export function EcranFormateur({ promotions, etudiants, onChangerEcran }: EcranF
         </CardContent>
       </Card>
 
-      {etat.kind === 'ok' && <CarteSessionOuverte session={etat.session} />}
+      {etat.kind === 'ok' && (
+        <>
+          <CarteSessionOuverte session={etat.session} />
+          <PanelPresencesSession session={etat.session} etudiants={etudiants} />
+        </>
+      )}
 
       <EcranTableau etudiants={etudiants} />
     </div>
