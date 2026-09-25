@@ -14,7 +14,9 @@ erDiagram
     SESSION ||--o{ EXERCICE : accueille
     ETUDIANT ||--o{ PRESENCE : marque
     ETUDIANT ||--o{ EXERCICE : depose
-    EXERCICE ||--|| RELECTURE : genere
+    %% enveloppe étape 3 : deux relectures par exercice (RG4), une seule par
+    %% (exercice, relecteur) — contrainte uk_relecture_exercice_relecteur (V6)
+    EXERCICE ||--o{ RELECTURE : genere
     ETUDIANT ||--o{ RELECTURE : effectue
 
     PROMOTION {
