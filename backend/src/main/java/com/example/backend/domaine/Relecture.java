@@ -43,13 +43,23 @@ public class Relecture {
     @Column(name = "rendue_at")
     private LocalDateTime rendueAt;
 
+    /** Traçabilité : SYSTEME (tirage au sort) ou FORMATEUR (assignation manuelle, issue #22). */
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(name = "assigned_by", nullable = false, length = 12)
+    private AssignedBy assignedBy = AssignedBy.SYSTEME;
+
     protected Relecture() {
         // JPA
     }
 
     public Relecture(Exercice exercice, Etudiant relecteur) {
+        this(exercice, relecteur, AssignedBy.SYSTEME);
+    }
+
+    public Relecture(Exercice exercice, Etudiant relecteur, AssignedBy assignedBy) {
         this.exercice = exercice;
         this.relecteur = relecteur;
+        this.assignedBy = assignedBy;
     }
 
     public Long getId() {
@@ -74,6 +84,10 @@ public class Relecture {
 
     public LocalDateTime getRendueAt() {
         return rendueAt;
+    }
+
+    public AssignedBy getAssignedBy() {
+        return assignedBy;
     }
 
     /** Enregistre la note et le commentaire (EF5) — l'exercice passe alors à RELU. */

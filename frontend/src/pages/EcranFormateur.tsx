@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import type { VueEcran } from '../App'
 import { EcranTableau } from './EcranTableau'
 import { PanelPresencesSession } from './PanelPresencesSession'
+import { PanelSansRelecteur } from './PanelSansRelecteur'
 
 interface EcranFormateurProps {
   promotions: Promotion[]
@@ -213,6 +214,7 @@ export function EcranFormateur({ promotions, etudiants, onChangerEcran }: EcranF
             onCloture={(sessionCloturee) => setEtat({ kind: 'ok', session: sessionCloturee })}
           />
           <PanelPresencesSession session={etat.session} etudiants={etudiants} />
+          <PanelSansRelecteur sessionId={etat.session.id} etudiants={etudiants} />
         </>
       )}
 

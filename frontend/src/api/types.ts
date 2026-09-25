@@ -59,6 +59,15 @@ export interface Relecture {
   rendueAt: string | null
 }
 
+/** MODULE 10 — exercice resté sans relecteur (RG8), liste du formateur. */
+export interface ExerciceSansRelecteur {
+  id: number
+  sessionId: number
+  etudiantId: number
+  lien: string
+  deposeAt: string
+}
+
 export interface LigneTableau {
   etudiantId: number
   nom: string
