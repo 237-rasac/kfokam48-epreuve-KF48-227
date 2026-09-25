@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ import com.example.backend.service.SessionService;
 @AutoConfigureMockMvc
 class Module2SessionsTest {
 
-    private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
     @Autowired
     private MockMvc mockMvc;
@@ -58,12 +59,12 @@ class Module2SessionsTest {
                 .andReturn();
 
         String corps = resultat.getResponse().getContentAsString();
-        LocalDateTime ouverture = LocalDateTime.parse(extraire(corps, "ouvertureAt"), ISO);
-        LocalDateTime expiration = LocalDateTime.parse(extraire(corps, "expirationAt"), ISO);
+        OffsetDateTime ouverture = OffsetDateTime.parse(extraire(corps, "ouvertureAt"), ISO);
+        OffsetDateTime expiration = OffsetDateTime.parse(extraire(corps, "expirationAt"), ISO);
 
         // RG1 : le code expire 15 minutes après l'ouverture
         assertThat(expiration).isEqualTo(ouverture.plusMinutes(15));
-        assertThat(ouverture).isAfter(avant.minusSeconds(5));
+        assertThat(ouverture.toLocalDateTime()).isAfter(avant.minusSeconds(5));
 
         // RG16 : le code est bien persisté
         String code = extraire(corps, "code");
@@ -117,6 +118,17 @@ class Module2SessionsTest {
         mockMvc.perform(get("/api/sessions/999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("SESSION_INCONNUE"));
+    }
+
+    @Test
+    void lesDatesSontAuFormatDateTimeDuContratAvecSecondesEtDecalage() throws Exception {
+        // Session de démo ouverte à 08:00:00 pile : les secondes ne doivent pas disparaître
+        mockMvc.perform(get("/api/sessions/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ouvertureAt").value(org.hamcrest.Matchers.matchesPattern(
+                        "2026-03-12T08:00:00(Z|[+-]\\d{2}:\\d{2})")))
+                .andExpect(jsonPath("$.expirationAt").value(org.hamcrest.Matchers.matchesPattern(
+                        "2026-03-12T08:15:00(Z|[+-]\\d{2}:\\d{2})")));
     }
 
     @Test
