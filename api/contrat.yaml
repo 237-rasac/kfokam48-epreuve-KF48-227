@@ -1,13 +1,21 @@
 openapi: 3.0.3
 info:
   title: API — Présence et relecture KFOKAM48
-  version: 1.0.0
+  version: 2.0.0
   description: |
     Contrat imposé par l'épreuve finale fullstack KFOKAM48.
     Les 5 opérations imposées sont respectées à la lettre :
     chemins, verbes, codes de statut et format d'erreur.
     Les opérations supplémentaires sont ajoutées pour couvrir
     les besoins du cahier des charges (EF1–EF12).
+
+    Version 2 (enveloppe étape 3) : chaque exercice est relu par DEUX
+    relecteurs différents (RG4 modifiée). La note retenue est la moyenne
+    des relectures rendues ; elle est marquée provisoire tant que les deux
+    relectures attendues ne sont pas rendues (RG8/RG17). Changement non
+    rétrocompatible : ExerciceDetail.note devient une moyenne et les champs
+    provisoire, relecturesAttendues, relecturesRendues et commentaires
+    remplacent le couple note/commentaire unique.
 
 servers:
   - url: http://localhost:8080
@@ -564,7 +572,11 @@ components:
 
     ExerciceDetail:
       type: object
-      description: Vue étudiant — sans identité du relecteur (EF11)
+      description: >-
+        Vue étudiant — sans identité des relecteurs (EF11).
+        v2 : deux relectures par exercice (RG4). La note est la moyenne des
+        relectures rendues ; elle est provisoire tant qu'une deuxième
+        relecture est attendue et pas encore rendue (RG8/RG17).
       properties:
         id:
           type: integer
@@ -576,13 +588,27 @@ components:
           type: string
           enum: [EN_ATTENTE, RELU]
         note:
+          type: number
+          format: double
+          nullable: true
+          description: Moyenne des relectures rendues, sur 20 ; null si aucune relecture rendue
+        provisoire:
+          type: boolean
+          description: >-
+            true si une deuxième relecture est attendue et pas encore rendue
+            (RG8/RG17) ; false sinon (les deux rendues, ou une seule relecture
+            assignée faute de pool suffisant)
+        relecturesAttendues:
           type: integer
-          nullable: true
-          minimum: 0
-          maximum: 20
-        commentaire:
-          type: string
-          nullable: true
+          description: Nombre de relectures assignées pour cet exercice (2 en régime nominal)
+        relecturesRendues:
+          type: integer
+          description: Nombre de relectures rendues à cet instant
+        commentaires:
+          type: array
+          description: Commentaires des relectures rendues, sans identité des relecteurs (EF11)
+          items:
+            type: string
 
     RelectureCreation:
       type: object
@@ -639,7 +665,11 @@ components:
           type: number
           format: double
           nullable: true
-          description: null si aucune note reçue
+          description: >-
+            Moyenne des notes des exercices ; la note d'un exercice est la
+            moyenne de ses relectures rendues (RG17). null si aucune note reçue.
+            Une moyenne appuyée sur un seul relecteur rendu hérite du caractère
+            provisoire de la note concernée.
         relecturesEnAttente:
           type: integer
 
