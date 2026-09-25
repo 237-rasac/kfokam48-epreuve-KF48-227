@@ -46,4 +46,12 @@ public class RelectureController {
                 .map(RelectureDto::de)
                 .toList();
     }
+
+    /** Relectures déjà rendues par l'étudiant — bouton « Modifier » (EF9/RG7, MODULE 7). */
+    @GetMapping("/api/etudiants/{id}/relectures/rendues")
+    public List<RelectureDto> getRelecturesRendues(@PathVariable Long id) {
+        return relectures.findByRelecteurIdAndRendueAtIsNotNull(id).stream()
+                .map(RelectureDto::de)
+                .toList();
+    }
 }

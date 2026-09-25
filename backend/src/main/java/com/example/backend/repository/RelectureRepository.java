@@ -10,6 +10,9 @@ public interface RelectureRepository extends JpaRepository<Relecture, Long> {
 
     List<Relecture> findByRelecteurIdAndRendueAtIsNull(Long relecteurId);
 
+    /** Relectures déjà rendues par un étudiant — écran relecteur, modification EF9/RG7. */
+    List<Relecture> findByRelecteurIdAndRendueAtIsNotNull(Long relecteurId);
+
     boolean existsByExerciceId(Long exerciceId);
 
     boolean existsByExerciceIdAndRendueAtIsNotNull(Long exerciceId);
