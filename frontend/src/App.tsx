@@ -101,7 +101,11 @@ function App() {
 
       {vue === 'relecteur' && (
         <div className="flex w-full max-w-md flex-col gap-4">
-          <EcranRelecteur onChangerEcran={setVue} />
+          {etudiantCourant ? (
+            <EcranRelecteur etudiantId={etudiantCourant.id} onChangerEcran={setVue} />
+          ) : (
+            <EcranRelecteur etudiantId={getEtudiantCourant() ?? 0} onChangerEcran={setVue} />
+          )}
           <Button
             variant="secondary"
             onClick={() => setVue(etudiantCourant ? 'etudiant' : 'selection')}
