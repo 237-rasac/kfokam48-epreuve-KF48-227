@@ -3,6 +3,7 @@ package com.example.backend.service;
 import java.time.LocalDateTime;
 import java.util.Locale;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,7 +99,17 @@ public class PresenceService {
             throw new ErreurMetierException("DEJA_PRESENT", 409, "Présence déjà enregistrée.");
         }
 
-        Presence presence = presences.save(new Presence(session, etudiant, sourceEffective, maintenant));
+        Presence presence;
+        try {
+            presence = presences.save(new Presence(session, etudiant, sourceEffective, maintenant));
+        } catch (DataIntegrityViolationException e) {
+            // Issue #39 : le contrôle RG15 ci-dessus est un check-then-act ; sous
+            // concurrence, deux requêtes peuvent le franchir avant le commit de
+            // l'autre. La contrainte uk_presence_session_etudiant (V1) arbitre alors
+            // la course : traduite en 409 contractuel DEJA_PRESENT au lieu d'un 500
+            // ERREUR_INTERNE (le générique ExceptionHandler la laissait filer).
+            throw new ErreurMetierException("DEJA_PRESENT", 409, "Présence déjà enregistrée.");
+        }
         // Un étudiant présent (par lui-même ou ajouté par le formateur) repart de zéro
         compteurErreurs.noterSucces(etudiantId);
         return presence;
