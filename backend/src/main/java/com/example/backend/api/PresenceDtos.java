@@ -16,11 +16,11 @@ public final class PresenceDtos {
                     presence.getSession().getId(),
                     presence.getEtudiant().getId(),
                     presence.getSource().name(),
-                    presence.getMarqueeAt().toString());
+                    SessionDtos.horodatage(presence.getMarqueeAt()));
         }
     }
 
-    /** Corps de POST /api/presences. */
-    public record PresenceCreation(String code, Long etudiantId) {
+    /** Corps de POST /api/presences — source optionnelle (EF7 : FORMATEUR pour un ajout manuel). */
+    public record PresenceCreation(String code, Long etudiantId, String source) {
     }
 }
