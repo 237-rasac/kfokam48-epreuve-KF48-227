@@ -20,6 +20,7 @@ import { PanelPresencesSession } from './PanelPresencesSession'
 interface EcranFormateurProps {
   promotions: Promotion[]
   etudiants: import('@/api/types').Etudiant[]
+  /** Session ouverte en cours : le tableau complet la remplace après ouverture. */
   onChangerEcran: (ecran: VueEcran) => void
 }
 
@@ -154,7 +155,8 @@ export function EcranFormateur({ promotions, etudiants, onChangerEcran }: EcranF
         </>
       )}
 
-      <EcranTableau etudiants={etudiants} />
+      {/* MODULE 8 — EF6 : tableau de bord par étudiant, servi par l'API */}
+      <EcranTableau promotions={promotions} etudiants={etudiants} />
     </div>
   )
 }

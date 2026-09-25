@@ -104,6 +104,7 @@ export function getRelecturesRendues(etudiantId: number): Promise<Relecture[]> {
 
 // ---- Tableau de bord -------------------------------------------------------
 
+/** MODULE 8 — EF6 : tableau par étudiant pour une promotion. */
 export function getTableau(promotionId: number): Promise<LigneTableau[]> {
   return apiFetch<LigneTableau[]>(`/tableau?promotionId=${promotionId}`)
 }
