@@ -41,6 +41,19 @@ const serveur = setupServer(
     return Response.json(presence, { status: 201 })
   }),
   http.get('/api/sessions/10/presences', () => Response.json(presencesStore)),
+  // MODULE 8/10 — l'écran formateur affiche aussi le tableau (EF6) et le panel
+  // « exercices sans relecteur » (RG8) : ces handlers évitent les requêtes non
+  // interceptées qui créaient des alertes parasites (plusieurs role="alert").
+  http.get('/api/tableau', () =>
+    Response.json([
+      { etudiantId: 1, nom: 'Amina Bello', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+      { etudiantId: 2, nom: 'Boris Kamdem', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+      { etudiantId: 3, nom: 'Clarisse Ngo', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+      { etudiantId: 4, nom: 'David Etoundi', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+      { etudiantId: 5, nom: 'Emma Fouda', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+    ]),
+  ),
+  http.get('/api/sessions/10/exercices-sans-relecteur', () => Response.json([])),
 )
 
 // Petit store pour que GET reflète les POST (le panneau recharge la liste après ajout)
