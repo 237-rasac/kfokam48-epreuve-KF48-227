@@ -19,14 +19,16 @@ interface PanelPresencesSessionProps {
 }
 
 /**
- * MODULE 4 — EF7/RG11 : le formateur ajoute une présence manuellement sur la
- * session ouverte ; chaque ligne porte un badge ETUDIANT ou FORMATEUR.
+ * MODULE 4 + 9 — EF7/RG11 : ajout manuel tant que la session est ouverte ;
+ * une fois clôturée (EF8), l'ajout est désactivé et un badge « gelée » s'affiche.
  */
 export function PanelPresencesSession({ session, etudiants }: PanelPresencesSessionProps) {
   const [presences, setPresences] = useState<Presence[] | null>(null)
   const [etudiantChoisi, setEtudiantChoisi] = useState<number | null>(null)
   const [envoi, setEnvoi] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null)
+
+  const cloturee = session.clotureAt !== null
 
   const charger = useCallback(() => {
     getPresencesSession(session.id)
@@ -65,46 +67,57 @@ export function PanelPresencesSession({ session, etudiants }: PanelPresencesSess
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Présences — {session.titre}</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Présences — {session.titre}
+          {cloturee && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              ❄ session gelée
+            </span>
+          )}
+        </CardTitle>
         <CardDescription>
-          Ajout manuel possible tant que la session n'est pas clôturée (EF7).
+          {cloturee
+            ? 'Session clôturée : plus aucune présence ne peut être ajoutée (EF8).'
+            : 'Ajout manuel possible tant que la session n\'est pas clôturée (EF7).'}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="etudiant-ajout">Ajouter un étudiant présent</Label>
-          <div className="flex gap-2">
-            <select
-              id="etudiant-ajout"
-              value={etudiantChoisi ?? ''}
-              onChange={(e) => setEtudiantChoisi(e.target.value === '' ? null : Number(e.target.value))}
-              className="h-8 flex-1 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="">— Choisir un étudiant —</option>
-              {etudiants.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.nom}
-                  {presences?.some((p) => p.etudiantId === e.id) ? ' (déjà présent)' : ''}
-                </option>
-              ))}
-            </select>
-            <Button onClick={ajouterManuellement} disabled={etudiantChoisi === null || envoi}>
-              {envoi ? 'Ajout…' : 'Ajouter'}
-            </Button>
+        {!cloturee && (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="etudiant-ajout">Ajouter un étudiant présent</Label>
+            <div className="flex gap-2">
+              <select
+                id="etudiant-ajout"
+                value={etudiantChoisi ?? ''}
+                onChange={(e) => setEtudiantChoisi(e.target.value === '' ? null : Number(e.target.value))}
+                className="h-8 flex-1 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <option value="">— Choisir un étudiant —</option>
+                {etudiants.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nom}
+                    {presences?.some((p) => p.etudiantId === e.id) ? ' (déjà présent)' : ''}
+                  </option>
+                ))}
+              </select>
+              <Button onClick={ajouterManuellement} disabled={etudiantChoisi === null || envoi}>
+                {envoi ? 'Ajout…' : 'Ajouter'}
+              </Button>
+            </div>
+            {message && (
+              <p
+                role={message.ok ? 'status' : 'alert'}
+                aria-live="polite"
+                className={message.ok ? 'text-sm text-green-700 dark:text-green-400' : 'text-sm text-red-700 dark:text-red-400'}
+              >
+                {message.ok ? '✅ ' : '❌ '}
+                {message.texte}
+              </p>
+            )}
           </div>
-          {message && (
-            <p
-              role={message.ok ? 'status' : 'alert'}
-              aria-live="polite"
-              className={message.ok ? 'text-sm text-green-700 dark:text-green-400' : 'text-sm text-red-700 dark:text-red-400'}
-            >
-              {message.ok ? '✅ ' : '❌ '}
-              {message.texte}
-            </p>
-          )}
-        </div>
+        )}
 
-        <ul className="mt-4 divide-y" aria-label="Liste des présences de la session">
+        <ul className={cloturee ? 'divide-y' : 'mt-4 divide-y'} aria-label="Liste des présences de la session">
           {presences?.map((p) => (
             <li key={p.id} className="flex items-center justify-between py-2 text-sm">
               <span>{nomsParId.get(p.etudiantId) ?? `Étudiant ${p.etudiantId}`}</span>
