@@ -41,11 +41,16 @@ public class RelectureRendueService {
     }
 
     @Transactional
-    public Relecture rendre(Long relectureId, Long relecteurId, Integer note, String commentaire) {
-        if (note == null || note < 0 || note > 20) {
+    public Relecture rendre(Long relectureId, Long relecteurId, java.math.BigDecimal note,
+            String commentaire) {
+        // RG6 : note entière 0–20. Un décimal (15.5) est rejeté avec NOTE_INVALIDE.
+        if (note == null || note.stripTrailingZeros().scale() > 0
+                || note.compareTo(java.math.BigDecimal.ZERO) < 0
+                || note.compareTo(java.math.BigDecimal.valueOf(20)) > 0) {
             throw new ErreurMetierException("NOTE_INVALIDE", 400,
                     "La note doit être un entier entre 0 et 20.");
         }
+        int noteEntiere = note.intValueExact();
         if (commentaire == null || commentaire.isBlank()) {
             throw new ErreurMetierException("CHAMP_MANQUANT", 400, "Le commentaire est obligatoire.");
         }
@@ -84,7 +89,7 @@ public class RelectureRendueService {
 
         if (relecture.getRendueAt() == null) {
             // Premier rendu (EF5) : l'exercice passe à RELU
-            relecture.rendre(note, commentaire.trim(), horloge.maintenant());
+            relecture.rendre(noteEntiere, commentaire.trim(), horloge.maintenant());
             exercice.setStatut(com.example.backend.domaine.StatutExercice.RELU);
         } else {
             // Modification d'une relecture déjà rendue (EF9/RG7) : historique
@@ -92,10 +97,10 @@ public class RelectureRendueService {
                     relecture,
                     relecture.getNote(),
                     relecture.getCommentaire(),
-                    note,
+                    noteEntiere,
                     commentaire.trim(),
                     horloge.maintenant()));
-            relecture.rendre(note, commentaire.trim(), relecture.getRendueAt());
+            relecture.rendre(noteEntiere, commentaire.trim(), relecture.getRendueAt());
         }
         return relectures.save(relecture);
     }
