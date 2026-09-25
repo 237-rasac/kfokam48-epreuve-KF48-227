@@ -168,3 +168,50 @@
   version 0.1.0) — PR #33.
 - État du Sprint 1 : 10/10 issues MODULE fermées, EF1–EF12 couvertes, branches
   de modules conservées, PR #23 à #33 fusionnées.
+
+## Changement de besoin : double relecture (enveloppe étape 3)
+
+Reçu après le jalon `[JALON] v0.1` : chaque exercice est relu par **deux pairs
+différents**, note retenue = moyenne des deux ; si un seul a rendu, note
+affichée mais **provisoire**. C'est un **Must qui arrive tard** : quelque chose
+doit sortir du périmètre. Ce qui est écrit ici est assumé comme tel.
+
+### Découpage et re-priorisation (milestone Sprint 2)
+
+- Issue **#39** (bug) : présences concurrentes perdues — `PresenceService`
+  check-then-act sur RG15. **Priorité 1**, avant toute feature : l'ordre
+  issue → test rouge → correctif est évalué, et un bug de données réelles
+  passe avant une évolution.
+- Issue **#40** (MODULE 11) : migration **V6** versionnée — drop de
+  `uk_relecture_exercice`, unique `(exercice_id, relecteur_id)` ; V1–V5
+  intacts, les données de démo doivent survivre.
+- Issue **#41** (MODULE 12) : backend — deux relecteurs distincts (RG3/RG5),
+  RELU quand tout est rendu (EF5), moyenne + flag `provisoire` (RG17) selon
+  le contrat v2.0.0.
+- Issue **#42** (MODULE 13) : frontend — badge « note provisoire »,
+  commentaires multiples (EF11).
+
+### Ce que je sacrifie, et pourquoi
+
+- **ENF1 — « temps de réponse < 2 s pour le tableau avec 100 étudiants »** :
+  sort du périmètre du Sprint 2. C'est la seule exigence vérifiable qui
+  demande un outillage que le projet n'a pas (jeu de charge, mesure);
+  la faire mal aurait coûté plus qu'elle ne rapporte, et aucune exigence
+  Must du changement client ne la porte. La pagination éventuelle du tableau
+  ne sera pas traitée non plus. ENF2 (responsive 375 px) est conservée :
+  elle ne coûte presque rien. L'exigence reste écrite au cahier des charges,
+  marquée « sacrifiée » — un périmètre réduit et assumé vaut mieux qu'un
+  périmètre annoncé et non tenu.
+- **EF12/RG14 (blocage après 5 erreurs)** : livré au Sprint 1 (Could),
+  maintenance seule — aucune extension (pas de persistance du compteur,
+  pas de paramétrage du seuil) tant que le Sprint 2 n'est pas livré.
+- **EF9/RG7 (historique de relecture)** : livré au Sprint 1, non étendu au
+  nouveau mode deux relecteurs (l'historique existant reste par relecture,
+  pas de vue agrégée par exercice).
+
+### Séparation des sujets
+
+Correctif bug et changement de besoin sont deux sujets : deux branches,
+deux PR. L'analyse (cahier v2, RG4/RG17, contrat v2.0.0, diagrammes D2/D4)
+est déjà commiteé sur `docs/double-relecture` (**PR #38**) — le commit
+documentaire précède tout code, conformément à l'enveloppe (point 2.1).
