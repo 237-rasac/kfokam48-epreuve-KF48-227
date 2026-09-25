@@ -20,7 +20,7 @@
 | | |
 |---|---|
 | Dépôt (public) | [`https://github.com/237-rasac/kfokam48-epreuve-KF48-227`](https://github.com/237-rasac/kfokam48-epreuve-KF48-227) |
-| Commit final — hash complet, 40 caractères | `97a1b70d9862eecb19e1db75106ed0d01892f443` |
+| Commit final — hash complet, 40 caractères | À compléter après `[JALON] v1.0` (dernier commit poussé sur `main`) |
 | Branche | `main` |
 
 ## Épreuve Git — étape 5
@@ -28,28 +28,60 @@
 | | |
 |---|---|
 | Dépôt (public) | `https://github.com/237-rasac/kfokam48-gitlab-KF48-227` |
-| Commit final — hash complet, 40 caractères | |
+| Commit final — hash complet, 40 caractères | À compléter après la synchronisation de l'étape 5 |
 
 ## Technique
 
 | | |
 |---|---|
-| Frontend utilisé | React (Vite, TypeScript) |
-| Base de données | PostgreSQL 16, schéma versionné par Flyway (H2 en mémoire pour les tests) |
-| Commandes de démarrage | 1. `cd backend && docker compose up -d --build` (base et API sur http://localhost:8080)<br>2. `cd frontend && npm install`<br>3. `npm run dev` (application sur http://localhost:5173) |
+| Frontend utilisé | React 19 + TypeScript (Vite), choix justifié au cahier des charges §0 |
+| Base de données | PostgreSQL 16, schéma versionné par Flyway V1–V5 (H2 en mémoire pour les tests) |
+| Commandes de démarrage | 1. `cd backend && docker compose up -d --build` (base et API sur http://localhost:8080, Swagger : /swagger-ui.html)<br>2. `cd frontend && npm install`<br>3. `npm run dev` (application sur http://localhost:5173) |
 
 ## Ce que j'ai livré
 
-Six modules sur dix sont fusionnés sur `main`, avec leurs tests backend et frontend :
-- ouverture de session avec un code valable 15 minutes (EF1) ;
-- présence par code, avec blocage de 2 minutes après 5 erreurs (EF2, EF12) ;
-- ajout manuel d'une présence par le formateur (EF7) ;
-- dépôt d'exercice avec assignation aléatoire d'un relecteur, remplacement du lien et consultation de la note (EF3, EF4, EF10, EF11) ;
-- rendu d'une relecture notée de 0 à 20 (EF5).
+Les dix modules du Sprint 1 sont fusionnés sur `main` (issues #13 à #22, PR #23 à #35),
+couvrant toutes les exigences EF1 à EF12 :
 
-Le tableau de bord (EF6) et la clôture de session (EF8) ne sont pas encore livrés. La correction de note avant clôture (EF9) non plus.
+- ouverture de session avec code unique valable 15 minutes (EF1, RG1, RG16) ;
+- présence par code avec tous les cas d'erreur contractuels et blocage de 2 minutes
+  après 5 erreurs (EF2, EF12, RG2, RG14, RG15) ;
+- ajout manuel d'une présence par le formateur, badge « ajouté par le formateur » (EF7, RG11) ;
+- dépôt d'exercice avec assignation aléatoire du relecteur parmi les présents, remplacement
+  du lien tant que personne n'a relu, consultation de la note sans identité du relecteur
+  (EF3, EF4, EF10, EF11, RG3 à RG5, RG8 à RG10) ;
+- rendu d'une relecture notée de 0 à 20 avec commentaire (EF5, RG6) ;
+- modification de sa relecture avant la clôture, avec historique (EF9, RG7) ;
+- tableau de bord par promotion : présences, exercices, moyenne (« — » si aucune note),
+  relectures en attente, exercices sans relecteur (EF6, RG13, RG21) ;
+- clôture de session avec verrouillage complet : plus aucune présence, dépôt ni relecture
+  acceptés (EF8, RG2, RG9) ;
+- assignation manuelle d'un relecteur par le formateur sur un exercice resté sans relecteur
+  (issue #22, `assignedBy = FORMATEUR`).
 
-J'ai volontairement exclu l'authentification (cahier des charges §3). L'identité est choisie dans une liste.
+J'ai volontairement exclu l'authentification (cahier des charges §3). L'identité est
+choisie dans une liste et mémorisée localement.
+
+## Qualité
+
+| | |
+|---|---|
+| Tests backend | 55 tests (H2 en mémoire, `mvnw test` sans base locale — ENF6) |
+| Tests frontend | 26 tests vitest + msw, build de production OK |
+| E2E | Parcours complet formateur / étudiant / relecteur vérifié sur la stack Docker (jalon v0.1) |
+| Revue contrat | Contrat OpenAPI ↔ implémentation vérifié opération par opération (`docs/revue-contrat.md`) |
+
+---
+
+## Reste à faire avant de téléverser (étapes 5 à 9 du cahier §10)
+
+1. **Ouvrir l'enveloppe** (correctif de bug + changement à intégrer) — étape 5.
+2. Corriger le bug, intégrer le changement, mettre à jour l'analyse et le contrat — étapes 5-6.
+3. Jouer la passe E2E complète après le correctif.
+4. Commit final, **`[JALON] v1.0`** — étape 8.
+5. Compléter les deux **hash de commit** (40 caractères) ci-dessus.
+6. Synchroniser l'**épreuve Git** (étape 5) et compléter son hash.
+7. Cocher toutes les cases de la liste ci-dessous, puis téléverser.
 
 ---
 
@@ -61,6 +93,7 @@ J'ai volontairement exclu l'authentification (cahier des charges §3). L'identit
 - [ ] Mon `README` a été testé depuis un clone vierge, dans un dossier vide
 - [x] Mon `JOURNAL.md` et mon cahier des charges sont dans `docs/`
 - [ ] Les trois commits `[JALON]` sont poussés et dans le bon ordre
+      (`[JALON] analyse` ✅ · `[JALON] v0.1` ✅ · `[JALON] v1.0` ⬜ à poser après le correctif)
 
 ---
 
