@@ -85,6 +85,8 @@ export function remplacerLienExercice(id: number, lien: string): Promise<Exercic
 export interface RelectureCreation {
   note: number
   commentaire: string
+  /** MODULE 6 : permet au backend de vérifier RG3 (auto-relecture) sans authentification. */
+  relecteurId?: number
 }
 
 export function rendreRelecture(id: number, creation: RelectureCreation): Promise<Relecture> {
