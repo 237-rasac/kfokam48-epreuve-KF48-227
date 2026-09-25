@@ -6,6 +6,7 @@ import type {
   Etudiant,
   Exercice,
   ExerciceDetail,
+  ExerciceSansRelecteur,
   LigneTableau,
   Presence,
   Promotion,
@@ -107,4 +108,18 @@ export function getRelecturesRendues(etudiantId: number): Promise<Relecture[]> {
 /** MODULE 8 — EF6 : tableau par étudiant pour une promotion. */
 export function getTableau(promotionId: number): Promise<LigneTableau[]> {
   return apiFetch<LigneTableau[]>(`/tableau?promotionId=${promotionId}`)
+}
+
+// ---- Assignation manuelle (MODULE 10, issue #22) ---------------------------
+
+export function getExercicesSansRelecteur(sessionId: number): Promise<ExerciceSansRelecteur[]> {
+  return apiFetch<ExerciceSansRelecteur[]>(`/sessions/${sessionId}/exercices-sans-relecteur`)
+}
+
+/** MODULE 10 : le formateur assigne manuellement un relecteur (assignedBy=FORMATEUR). */
+export function assignerRelecteur(exerciceId: number, relecteurId: number): Promise<Relecture> {
+  return apiFetch<Relecture>(`/exercices/${exerciceId}/assigner`, {
+    method: 'POST',
+    body: { relecteurId },
+  })
 }
