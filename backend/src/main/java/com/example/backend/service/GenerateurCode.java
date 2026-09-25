@@ -26,6 +26,11 @@ public class GenerateurCode {
         return sb.toString();
     }
 
+    /** Indice uniformément réparti dans [0, borne) — utilisé pour le tirage du relecteur (RG5). */
+    public int indiceAleatoire(int borne) {
+        return aleatoire.nextInt(borne);
+    }
+
     /** Génère un code distinct de ceux déjà pris (le service fournit l'ensemble des codes existants). */
     public String genererUnique(Set<String> codesExistants) {
         Set<String> pris = codesExistants == null ? Set.of() : codesExistants;
