@@ -89,7 +89,7 @@ describe('MODULE 3 — marquer sa présence (étudiant)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/CODE_EXPIRE/)
   })
 
-  it('affiche DEJA_PRESENT pour un doublon (RG15)', async () => {
+  it('traitage DEJA_PRESENT comme une réussite : létudiant peut déposer (MODULE 5)', async () => {
     serveur.use(
       http.post('/api/presences', () =>
         Response.json(
@@ -104,7 +104,9 @@ describe('MODULE 3 — marquer sa présence (étudiant)', () => {
     await utilisateur.type(screen.getByLabelText(/Code de présence/i), 'A7K3P9')
     await utilisateur.click(screen.getByRole('button', { name: /Marquer ma présence/i }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/DEJA_PRESENT/)
+    expect(
+      await screen.findByText(/Tu es déjà marqué présent/i),
+    ).toBeInTheDocument()
   })
 
   it('affiche ETUDIANT_BLOQUE avec aide après 5 erreurs (EF12/RG14)', async () => {

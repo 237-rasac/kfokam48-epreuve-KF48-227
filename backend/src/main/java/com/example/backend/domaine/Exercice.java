@@ -41,6 +41,10 @@ public class Exercice {
     @Column(name = "depose_at", nullable = false)
     private LocalDateTime deposeAt;
 
+    /** Non persisté : relecture attachée en lecture pour EF11 (note + commentaire, sans relecteur). */
+    @jakarta.persistence.Transient
+    private Relecture relecture;
+
     protected Exercice() {
         // JPA
     }
@@ -83,5 +87,13 @@ public class Exercice {
 
     public LocalDateTime getDeposeAt() {
         return deposeAt;
+    }
+
+    public Relecture getRelecture() {
+        return relecture;
+    }
+
+    public void setRelecture(Relecture relecture) {
+        this.relecture = relecture;
     }
 }
