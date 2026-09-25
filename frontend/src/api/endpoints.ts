@@ -48,6 +48,8 @@ export function cloturerSession(id: number): Promise<Session> {
 export interface PresenceCreation {
   code: string
   etudiantId: number
+  /** EF7 : FORMATEUR pour un ajout manuel ; absent → voie étudiant. */
+  source?: 'ETUDIANT' | 'FORMATEUR'
 }
 
 export function marquerPresence(creation: PresenceCreation): Promise<Presence> {

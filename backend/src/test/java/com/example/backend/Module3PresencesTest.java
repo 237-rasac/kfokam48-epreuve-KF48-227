@@ -1,6 +1,7 @@
 package com.example.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -162,6 +163,28 @@ class Module3PresencesTest {
                 .andExpect(jsonPath("$.code").value("CODE_EXPIRE"))
                 .andReturn();
         assertThat(resultat.getResponse().getContentAsString()).contains("CODE_EXPIRE");
+    }
+
+    @Test
+    void codeEnMinusculesAccepteEtMarqueeAtAuFormatDuContrat() throws Exception {
+        String code = ouvrirSession();
+        mockMvc.perform(post("/api/presences")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\" " + code.toLowerCase() + " \",\"etudiantId\":1}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.etudiantId").value(1))
+                // date-time RFC 3339 : secondes et décalage horaire toujours présents
+                .andExpect(jsonPath("$.marqueeAt").value(org.hamcrest.Matchers.matchesPattern(
+                        "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})")));
+    }
+
+    @Test
+    void getPresencesDUneSessionRenvoieLesDatesAuFormatDuContrat() throws Exception {
+        // Présence de démo marquée à 08:02:00 pile : les secondes ne doivent pas disparaître
+        mockMvc.perform(get("/api/sessions/1/presences"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].marqueeAt").value(org.hamcrest.Matchers.matchesPattern(
+                        "2026-03-12T08:02:00(Z|[+-]\\d{2}:\\d{2})")));
     }
 
     // ---- utilitaires -------------------------------------------------------
