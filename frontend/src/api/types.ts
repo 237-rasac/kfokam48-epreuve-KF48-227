@@ -64,6 +64,9 @@ export interface LigneTableau {
   nom: string
   presences: number
   exercicesDeposes: number
+  /** RG21 : null si aucune note reçue — le front affiche « — ». */
   moyenne: number | null
   relecturesEnAttente: number
+  /** Issue #20 : exercices EN_ATTENTE sans relecteur. */
+  exercicesSansRelecteur: number
 }
