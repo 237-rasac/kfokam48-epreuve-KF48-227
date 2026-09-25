@@ -79,7 +79,11 @@ function App() {
       )}
 
       {vue === 'formateur' && (
-        <EcranFormateur etudiants={referentiel.etudiants} onChangerEcran={setVue} />
+        <EcranFormateur
+          promotions={referentiel.promotions}
+          etudiants={referentiel.etudiants}
+          onChangerEcran={setVue}
+        />
       )}
 
       {vue === 'etudiant' && (
