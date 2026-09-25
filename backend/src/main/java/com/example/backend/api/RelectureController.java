@@ -40,6 +40,15 @@ public class RelectureController {
         return RelectureDto.de(relecture);
     }
 
+    /** Contrat, operationId getRelecture : détail d'une relecture (assignée ou rendue). */
+    @GetMapping("/api/relectures/{id}")
+    public RelectureDto getRelecture(@PathVariable Long id) {
+        Relecture relecture = relectures.findById(id)
+                .orElseThrow(() -> new com.example.backend.erreur.ErreurMetierException(
+                        "RELECTURE_INCONNUE", 404, "Relecture inconnue."));
+        return RelectureDto.de(relecture);
+    }
+
     @GetMapping("/api/etudiants/{id}/relectures")
     public List<RelectureDto> getRelecturesEnAttente(@PathVariable Long id) {
         return relectures.findByRelecteurIdAndRendueAtIsNull(id).stream()

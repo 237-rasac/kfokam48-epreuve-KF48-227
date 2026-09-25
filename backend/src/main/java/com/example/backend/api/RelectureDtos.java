@@ -18,7 +18,10 @@ public final class RelectureDtos {
                     relecture.getRelecteur().getId(),
                     relecture.getNote(),
                     relecture.getCommentaire(),
-                    relecture.getRendueAt() == null ? null : relecture.getRendueAt().toString());
+                    // date-time du contrat (RFC 3339), comme SessionDtos
+                    relecture.getRendueAt() == null ? null
+                            : relecture.getRendueAt().atZone(java.time.ZoneId.systemDefault())
+                                    .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         }
     }
 
