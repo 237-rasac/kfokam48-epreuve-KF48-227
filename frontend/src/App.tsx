@@ -1,8 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
-import { ApiError } from '@/api/client'
-import { getPromotions } from '@/api/endpoints'
-import type { Promotion } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -11,85 +8,103 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { EcranEtudiant } from '@/pages/EcranEtudiant'
+import { EcranFormateur } from '@/pages/EcranFormateur'
+import { EcranRelecteur } from '@/pages/EcranRelecteur'
+import { EcranSelection } from '@/pages/EcranSelection'
+import { useReferentiel } from '@/pages/useReferentiel'
+import { getEtudiantCourant } from '@/pages/selection'
 
-type ApiState =
-  | { kind: 'loading' }
-  | { kind: 'ok'; promotions: Promotion[] }
-  | { kind: 'error'; code: string; message: string }
+/** Écrans disponibles : sélection d'identité, puis formateur / étudiant / relecteur. */
+export type VueEcran = 'selection' | 'formateur' | 'etudiant' | 'relecteur'
 
 const APP_TITLE = 'KFOKAM48 — Présences et relectures'
 
-/** Coquille : aucun écran métier, juste la preuve que l'app parle au backend. */
 function App() {
-  const [state, setState] = useState<ApiState>({ kind: 'loading' })
+  const referentiel = useReferentiel()
+  // L'identité mémorisée (localStorage) pré-sélectionne l'écran étudiant au rechargement.
+  const [vue, setVue] = useState<VueEcran>(getEtudiantCourant() !== null ? 'etudiant' : 'selection')
 
-  useEffect(() => {
-    let cancelled = false
-    getPromotions()
-      .then((promotions) => {
-        if (!cancelled) setState({ kind: 'ok', promotions })
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return
-        if (error instanceof ApiError) {
-          setState({ kind: 'error', code: error.code, message: error.message })
-        } else {
-          setState({ kind: 'error', code: 'INATTENDU', message: String(error) })
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const etudiantCourant =
+    referentiel.etudiants?.find((e) => e.id === getEtudiantCourant()) ?? null
+
+  if (referentiel.erreur) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-6 p-6">
+        <h1 className="text-2xl font-semibold">{APP_TITLE}</h1>
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Connexion au backend</CardTitle>
+            <CardDescription>L'API n'a pas pu être interrogée.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div aria-live="assertive" role="alert">
+              <p className="text-red-700 dark:text-red-400">
+                ❌ Erreur API [{referentiel.erreur.code}] : {referentiel.erreur.message}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Vérifie que le backend tourne : <code>docker compose up -d</code> dans{' '}
+                <code>backend/</code>, puis l'API répond sur <code>http://localhost:8080</code>.
+              </p>
+              <Button className="mt-3" onClick={referentiel.recharger}>
+                Réessayer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
+
+  if (!referentiel.promotions || !referentiel.etudiants) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-6 p-6">
+        <h1 className="text-2xl font-semibold">{APP_TITLE}</h1>
+        <p aria-live="polite">Chargement du référentiel…</p>
+      </main>
+    )
+  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-6 p-6">
       <h1 className="text-2xl font-semibold">{APP_TITLE}</h1>
 
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Connexion au backend</CardTitle>
-          <CardDescription>
-            Coquille du frontend : la couche API est en place, les écrans arrivent.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {state.kind === 'loading' && <p aria-live="polite">Interrogation de l'API…</p>}
+      {vue === 'selection' && (
+        <EcranSelection
+          promotions={referentiel.promotions}
+          etudiants={referentiel.etudiants}
+          onValide={() => setVue('etudiant')}
+          onFormateur={() => setVue('formateur')}
+        />
+      )}
 
-          {state.kind === 'ok' && (
-            <div aria-live="polite">
-              <p className="text-green-700 dark:text-green-400">
-                ✅ API joignable — {state.promotions.length} promotion(s) reçue(s).
-              </p>
-              {state.promotions.length > 0 && (
-                <ul className="mt-2 list-disc pl-5 text-sm">
-                  {state.promotions.map((p) => (
-                    <li key={p.id}>
-                      {p.nom} <span className="text-muted-foreground">(id {p.id})</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+      {vue === 'formateur' && (
+        <EcranFormateur etudiants={referentiel.etudiants} onChangerEcran={setVue} />
+      )}
 
-          {state.kind === 'error' && (
-            <div aria-live="assertive" role="alert">
-              <p className="text-red-700 dark:text-red-400">
-                ❌ Erreur API [{state.code}] : {state.message}
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Vérifie que le backend tourne : <code>docker compose up -d</code> dans{' '}
-                <code>backend/</code>, puis l'API répond sur{' '}
-                <code>http://localhost:8080</code>.
-              </p>
-              <Button className="mt-3" onClick={() => location.reload()}>
-                Réessayer
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {vue === 'etudiant' && (
+        <div className="flex w-full max-w-md flex-col gap-4">
+          <EcranEtudiant
+            nomEtudiant={etudiantCourant?.nom ?? 'étudiant'}
+            onChangerEcran={setVue}
+          />
+          <Button variant="secondary" onClick={() => setVue('relecteur')}>
+            Voir mes relectures (écran relecteur)
+          </Button>
+        </div>
+      )}
+
+      {vue === 'relecteur' && (
+        <div className="flex w-full max-w-md flex-col gap-4">
+          <EcranRelecteur onChangerEcran={setVue} />
+          <Button
+            variant="secondary"
+            onClick={() => setVue(etudiantCourant ? 'etudiant' : 'selection')}
+          >
+            Retour
+          </Button>
+        </div>
+      )}
     </main>
   )
 }
