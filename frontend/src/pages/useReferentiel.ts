@@ -27,7 +27,6 @@ export function useReferentiel(): ReferentielEtat {
 
   useEffect(() => {
     let cancelled = false
-    setErreur(null)
     Promise.all([getPromotions(), getEtudiants()])
       .then(([lesPromotions, lesEtudiants]) => {
         if (cancelled) return
@@ -47,5 +46,11 @@ export function useReferentiel(): ReferentielEtat {
     }
   }, [tentative])
 
-  return { promotions, etudiants, erreur, recharger: () => setTentative((t) => t + 1) }
+  // L'erreur est effacée au moment du clic « Réessayer », pas dans l'effet (react-hooks/set-state-in-effect).
+  const recharger = () => {
+    setErreur(null)
+    setTentative((t) => t + 1)
+  }
+
+  return { promotions, etudiants, erreur, recharger }
 }
