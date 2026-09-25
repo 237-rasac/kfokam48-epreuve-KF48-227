@@ -22,8 +22,8 @@ const serveur = setupServer(
       id: 10,
       titre: 'Cours Architecture',
       code: 'A7K3P9',
-      ouvertureAt: '2026-09-25T17:00:00',
-      expirationAt: '2026-09-25T17:15:00',
+      ouvertureAt: '2026-09-25T17:00:00+01:00',
+      expirationAt: '2026-09-25T17:15:00+01:00',
       clotureAt: null,
       promotionId: 1,
     }),
@@ -51,6 +51,33 @@ describe('MODULE 2 — ouvrir une session (formateur)', () => {
     expect(await screen.findByText(/Session ouverte/i)).toBeInTheDocument()
     expect(screen.getByText('A7K3P9')).toBeInTheDocument()
     expect(screen.getByText(/Expire dans/i)).toBeInTheDocument()
+  })
+
+  it('compte à rebours juste quel que soit le fuseau du serveur (dates avec décalage)', async () => {
+    // Le serveur (conteneur en UTC) renvoie une date avec décalage « Z » :
+    // le navigateur doit afficher ~15 minutes restantes, pas 00:00.
+    const maintenant = Date.now()
+    serveur.use(
+      http.post('/api/sessions', () =>
+        Response.json({
+          id: 11,
+          titre: 'Cours fuseau',
+          code: 'Z9Z9Z9',
+          ouvertureAt: new Date(maintenant).toISOString(),
+          expirationAt: new Date(maintenant + 15 * 60_000).toISOString(),
+          clotureAt: null,
+          promotionId: 1,
+        }),
+      ),
+    )
+    const utilisateur = userEvent.setup()
+    render(<App />)
+
+    await utilisateur.click(await screen.findByRole('button', { name: /Je suis formateur/i }))
+    await utilisateur.type(screen.getByLabelText(/Titre de la session/i), 'Cours fuseau')
+    await utilisateur.click(screen.getByRole('button', { name: /Ouvrir la session/i }))
+
+    expect(await screen.findByText(/Expire dans/i)).toHaveTextContent(/Expire dans (14:[45]\d|15:00)/)
   })
 
   it('affiche l erreur contractuelle CHAMP_MANQUANT en cas de 400', async () => {

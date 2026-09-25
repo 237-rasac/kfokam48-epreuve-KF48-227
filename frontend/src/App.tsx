@@ -40,7 +40,7 @@ function App() {
           <CardContent>
             <div aria-live="assertive" role="alert">
               <p className="text-red-700 dark:text-red-400">
-                ❌ Erreur API [{referentiel.erreur.code}] : {referentiel.erreur.message}
+                 Erreur API [{referentiel.erreur.code}] : {referentiel.erreur.message}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 Vérifie que le backend tourne : <code>docker compose up -d</code> dans{' '}
@@ -86,10 +86,11 @@ function App() {
         />
       )}
 
-      {vue === 'etudiant' && (
+      {vue === 'etudiant' && etudiantCourant && (
         <div className="flex w-full max-w-md flex-col gap-4">
           <EcranEtudiant
-            nomEtudiant={etudiantCourant?.nom ?? 'étudiant'}
+            etudiantId={etudiantCourant.id}
+            nomEtudiant={etudiantCourant.nom}
             onChangerEcran={setVue}
           />
           <Button variant="secondary" onClick={() => setVue('relecteur')}>
