@@ -344,32 +344,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Erreur'
-
-  /api/relectures/{id}:
-    get:
-      tags: [Relectures]
-      summary: Détail d'une relecture assignée
-      operationId: getRelecture
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Relecture
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Relecture'
-        '404':
-          description: Relecture inconnue
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Erreur'
+      get:
+        tags: [Relectures]
+        summary: Détail d'une relecture assignée
+        operationId: getRelecture
+        parameters:
+          - name: id
+            in: path
+            required: true
+            schema:
+              type: integer
+              format: int64
+        responses:
+          '200':
+            description: Relecture
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Relecture'
+          '404':
+            description: Relecture inconnue
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Erreur'
 
   /api/etudiants/{id}/relectures:
     get:
