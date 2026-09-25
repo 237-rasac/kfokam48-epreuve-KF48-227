@@ -42,7 +42,7 @@ class RelectureServicePoolTest {
         org.mockito.Mockito.when(presences.findBySessionId(1L))
                 .thenReturn(List.of(presence(session, auteur))); // seul l'auteur est présent
 
-        RelectureService service = new RelectureService(presences, relectures, new GenerateurCode());
+        RelectureService service = new RelectureService(presences, relectures, org.mockito.Mockito.mock(com.example.backend.repository.ExerciceRepository.class), org.mockito.Mockito.mock(com.example.backend.repository.EtudiantRepository.class), new GenerateurCode());
         Exercice exercice = new Exercice(session, auteur, "https://x", java.time.LocalDateTime.now());
 
         service.assignerSiPossible(exercice);
@@ -70,7 +70,7 @@ class RelectureServicePoolTest {
         org.mockito.Mockito.when(relectures.findBySessionIdAndRendueAtIsNull(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(List.of());
 
-        RelectureService service = new RelectureService(presences, relectures, new GenerateurCode());
+        RelectureService service = new RelectureService(presences, relectures, org.mockito.Mockito.mock(com.example.backend.repository.ExerciceRepository.class), org.mockito.Mockito.mock(com.example.backend.repository.EtudiantRepository.class), new GenerateurCode());
         Exercice exercice = new Exercice(session, auteur, "https://x", java.time.LocalDateTime.now());
 
         service.assignerSiPossible(exercice);
@@ -102,7 +102,7 @@ class RelectureServicePoolTest {
         org.mockito.Mockito.when(relectures.save(org.mockito.Mockito.any()))
                 .thenAnswer(appel -> appel.getArgument(0));
 
-        RelectureService service = new RelectureService(presences, relectures, new GenerateurCode());
+        RelectureService service = new RelectureService(presences, relectures, org.mockito.Mockito.mock(com.example.backend.repository.ExerciceRepository.class), org.mockito.Mockito.mock(com.example.backend.repository.EtudiantRepository.class), new GenerateurCode());
         Exercice exercice = new Exercice(session, auteur, "https://x", java.time.LocalDateTime.now());
 
         service.assignerSiPossible(exercice);
@@ -123,7 +123,7 @@ class RelectureServicePoolTest {
         org.mockito.Mockito.when(presences.findBySessionId(1L))
                 .thenReturn(List.of(presence(session, auteur)));
 
-        RelectureService service = new RelectureService(presences, relectures, new GenerateurCode());
+        RelectureService service = new RelectureService(presences, relectures, org.mockito.Mockito.mock(com.example.backend.repository.ExerciceRepository.class), org.mockito.Mockito.mock(com.example.backend.repository.EtudiantRepository.class), new GenerateurCode());
         Exercice exercice = new Exercice(session, auteur, "https://x", java.time.LocalDateTime.now());
 
         // RG8 : ne lève pas, ne crée rien — l'exercice reste EN_ATTENTE sans relecteur
