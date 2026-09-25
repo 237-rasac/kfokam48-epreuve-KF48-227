@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,12 +16,21 @@ import com.example.backend.repository.PresenceRepository;
 import com.example.backend.repository.SessionCoursRepository;
 
 /**
- * Règles de marquage de présence (EF2, EF12, RG1, RG2, RG14, RG15) :
- * - code inconnu → 400 CODE_INCONNU (et compte pour le blocage EF12)
+ * Règles de marquage de présence (EF2, EF7, EF12, RG1, RG2, RG11, RG14, RG15).
+ *
+ * Voie étudiant (source=ETUDIANT, défaut) :
+ * - code inconnu → 400 CODE_INCONNU (compte pour le blocage EF12)
  * - code expiré → 410 CODE_EXPIRE (RG1)
  * - déjà présent → 409 DEJA_PRESENT (RG15)
  * - session clôturée → 410 SESSION_CLOTUREE (RG2)
  * - 5 erreurs → 429 ETUDIANT_BLOQUE pendant 2 minutes (RG14)
+ *
+ * Voie formateur (source=FORMATEUR, EF7/RG11 — champ explicite dans la requête,
+ * pas d'authentification au périmètre) :
+ * - outrepasse l'expiration du code (RG1) et le blocage (EF12) : c'est le sens
+ *   d'une ajout manuel ; l'issue #16 n'exige que la clôture comme blocage
+ * - session clôturée → 410 SESSION_CLOTUREE (RG2, exigé par l'issue #16)
+ * - déjà présent → 409 DEJA_PRESENT (RG15)
  */
 @Service
 public class PresenceService {
@@ -41,38 +51,45 @@ public class PresenceService {
     }
 
     @Transactional
-    public Presence marquer(String code, Long etudiantId) {
+    public Presence marquer(String code, Long etudiantId, SourcePresence source) {
         if (code == null || code.isBlank()) {
             throw new ErreurMetierException("CHAMP_MANQUANT", 400, "Le code est obligatoire.");
         }
         if (etudiantId == null) {
             throw new ErreurMetierException("CHAMP_MANQUANT", 400, "L'étudiant est obligatoire.");
         }
+        SourcePresence sourceEffective = source == null ? SourcePresence.ETUDIANT : source;
 
-        // EF12 : on vérifie le blocage avant tout le reste
-        if (compteurErreurs.estBloque(etudiantId)) {
-            throw new ErreurMetierException("ETUDIANT_BLOQUE", 429,
-                    "Trop d'erreurs, réessayez dans 2 minutes.");
+        if (sourceEffective == SourcePresence.ETUDIANT) {
+            // EF12 : on vérifie le blocage avant tout le reste (voie étudiant seulement)
+            if (compteurErreurs.estBloque(etudiantId)) {
+                throw new ErreurMetierException("ETUDIANT_BLOQUE", 429,
+                        "Trop d'erreurs, réessayez dans 2 minutes.");
+            }
         }
 
-        SessionCours session = sessions.findByCode(code.trim())
+        // Les codes sont générés en majuscules : « a7k3p9 » désigne la même session que « A7K3P9 »
+        SessionCours session = sessions.findByCode(code.trim().toUpperCase(Locale.ROOT))
                 .orElseGet(() -> {
-                    compteurErreurs.noterEchec(etudiantId);
+                    if (sourceEffective == SourcePresence.ETUDIANT) {
+                        compteurErreurs.noterEchec(etudiantId);
+                    }
                     throw new ErreurMetierException("CODE_INCONNU", 400, "Code inconnu.");
                 });
 
         Etudiant etudiant = etudiants.findById(etudiantId)
                 .orElseThrow(() -> new ErreurMetierException("ETUDIANT_INCONNU", 404, "Étudiant inconnu."));
 
-        // RG2 : plus de présence après la clôture
+        // RG2 : plus de présence après la clôture (étudiant comme formateur, issue #16)
         if (session.estCloturee()) {
             throw new ErreurMetierException("SESSION_CLOTUREE", 410, "La session est clôturée.");
         }
 
         LocalDateTime maintenant = horloge.maintenant();
 
-        // RG1 : le code expire 15 minutes après l'ouverture
-        if (maintenant.isAfter(session.getExpirationAt())) {
+        // RG1 : le code expire 15 minutes après l'ouverture — voie étudiant seulement ;
+        // l'ajout manuel du formateur (EF7/RG11) sert précisément à rattraper ces cas
+        if (sourceEffective == SourcePresence.ETUDIANT && maintenant.isAfter(session.getExpirationAt())) {
             throw new ErreurMetierException("CODE_EXPIRE", 410, "Le code de présence a expiré.");
         }
 
@@ -81,8 +98,8 @@ public class PresenceService {
             throw new ErreurMetierException("DEJA_PRESENT", 409, "Présence déjà enregistrée.");
         }
 
-        Presence presence = presences.save(
-                new Presence(session, etudiant, SourcePresence.ETUDIANT, maintenant));
+        Presence presence = presences.save(new Presence(session, etudiant, sourceEffective, maintenant));
+        // Un étudiant présent (par lui-même ou ajouté par le formateur) repart de zéro
         compteurErreurs.noterSucces(etudiantId);
         return presence;
     }
