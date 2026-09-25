@@ -50,13 +50,21 @@ public class SessionCours {
         // JPA
     }
 
+    /** Constructeur complet (données de démo, tests). */
     public SessionCours(String titre, String code, LocalDateTime ouvertureAt, LocalDateTime expirationAt,
-            Promotion promotion) {
+            LocalDateTime clotureAt, Promotion promotion) {
         this.titre = titre;
         this.code = code;
         this.ouvertureAt = ouvertureAt;
         this.expirationAt = expirationAt;
+        this.clotureAt = clotureAt;
         this.promotion = promotion;
+    }
+
+    /** Constructeur métier : session ouverte, non clôturée. */
+    public SessionCours(String titre, String code, LocalDateTime ouvertureAt, LocalDateTime expirationAt,
+            Promotion promotion) {
+        this(titre, code, ouvertureAt, expirationAt, null, promotion);
     }
 
     public Long getId() {
@@ -77,6 +85,18 @@ public class SessionCours {
 
     public LocalDateTime getOuvertureAt() {
         return ouvertureAt;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public void setOuvertureAt(LocalDateTime ouvertureAt) {
+        this.ouvertureAt = ouvertureAt;
+    }
+
+    public void setExpirationAt(LocalDateTime expirationAt) {
+        this.expirationAt = expirationAt;
     }
 
     public LocalDateTime getExpirationAt() {
