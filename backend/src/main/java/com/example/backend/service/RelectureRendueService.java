@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,30 +9,34 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.domaine.Etudiant;
 import com.example.backend.domaine.Exercice;
 import com.example.backend.domaine.Relecture;
-import com.example.backend.domaine.StatutExercice;
+import com.example.backend.domaine.RelectureHistorique;
 import com.example.backend.erreur.ErreurMetierException;
 import com.example.backend.repository.ExerciceRepository;
+import com.example.backend.repository.RelectureHistoriqueRepository;
 import com.example.backend.repository.RelectureRepository;
 
 /**
- * Rendre une relecture (EF5, RG3, RG6, RG8) :
+ * Rendre une relecture (EF5, RG3, RG6, RG8) et la modifier avant clôture
+ * (EF9, RG7) :
  * - note entière 0–20 obligatoire, sinon 400 NOTE_INVALIDE (RG6)
  * - relecteur = auteur → 403 AUTO_RELECTURE (RG3)
- * - relecture déjà rendue → 409 RELECTURE_DEJA_RENDUE
- * - session clôturée → 410 SESSION_CLOTUREE
- * - à la réussite : statut de l'exercice passe à RELU
+ * - premier rendu : 200, exercice passe à RELU
+ * - rendu suivant avant clôture : 200 + ligne d'historique (EF9/RG7)
+ * - après clôture : 409 RELECTURE_VERROUILLEE (code du contrat)
  */
 @Service
 public class RelectureRendueService {
 
     private final RelectureRepository relectures;
     private final ExerciceRepository exercices;
+    private final RelectureHistoriqueRepository historiques;
     private final HorlogeMetier horloge;
 
     public RelectureRendueService(RelectureRepository relectures, ExerciceRepository exercices,
-            HorlogeMetier horloge) {
+            RelectureHistoriqueRepository historiques, HorlogeMetier horloge) {
         this.relectures = relectures;
         this.exercices = exercices;
+        this.historiques = historiques;
         this.horloge = horloge;
     }
 
@@ -71,19 +76,27 @@ public class RelectureRendueService {
             }
         }
 
-        // La clôture gèle la relecture
+        // EF9/RG7 : après clôture, plus aucune modification (code du contrat)
         if (exercice.getSession().estCloturee()) {
-            throw new ErreurMetierException("SESSION_CLOTUREE", 410, "La session est clôturée.");
+            throw new ErreurMetierException("RELECTURE_VERROUILLEE", 409,
+                    "La session est clôturée, la relecture ne peut plus être modifiée.");
         }
 
-        // Deuxième rendu interdit (l'issue #19 traitera la modification avant clôture)
-        if (relecture.getRendueAt() != null) {
-            throw new ErreurMetierException("RELECTURE_DEJA_RENDUE", 409,
-                    "Cette relecture a déjà été rendue.");
+        if (relecture.getRendueAt() == null) {
+            // Premier rendu (EF5) : l'exercice passe à RELU
+            relecture.rendre(note, commentaire.trim(), horloge.maintenant());
+            exercice.setStatut(com.example.backend.domaine.StatutExercice.RELU);
+        } else {
+            // Modification d'une relecture déjà rendue (EF9/RG7) : historique
+            historiques.save(new RelectureHistorique(
+                    relecture,
+                    relecture.getNote(),
+                    relecture.getCommentaire(),
+                    note,
+                    commentaire.trim(),
+                    horloge.maintenant()));
+            relecture.rendre(note, commentaire.trim(), relecture.getRendueAt());
         }
-
-        relecture.rendre(note, commentaire.trim(), horloge.maintenant());
-        exercice.setStatut(StatutExercice.RELU);
         return relectures.save(relecture);
     }
 }

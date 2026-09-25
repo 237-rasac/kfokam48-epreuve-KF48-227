@@ -97,6 +97,11 @@ export function getRelecturesEnAttente(etudiantId: number): Promise<Relecture[]>
   return apiFetch<Relecture[]>(`/etudiants/${etudiantId}/relectures`)
 }
 
+/** MODULE 7 (EF9/RG7) : relectures déjà rendues, modifiables avant clôture. */
+export function getRelecturesRendues(etudiantId: number): Promise<Relecture[]> {
+  return apiFetch<Relecture[]>(`/etudiants/${etudiantId}/relectures/rendues`)
+}
+
 // ---- Tableau de bord -------------------------------------------------------
 
 export function getTableau(promotionId: number): Promise<LigneTableau[]> {
