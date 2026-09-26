@@ -59,11 +59,14 @@ class Module5ExercicesTest {
                 .andExpect(jsonPath("$.relecteurAssignee").value(true))
                 .andReturn();
 
-        // EF4/RG4 : une relecture créée, relecteur distinct de l'auteur (RG3)
+        // EF4/RG4 modifiée, RG8 : pool de 1 seul présent hors auteur (étudiant 3)
+        // → une seule relecture, assignée à ce présent, distincte de l'auteur (RG3)
         Long exerciceId = extraireLong(resultat.getResponse().getContentAsString(), "id");
-        var relecture = relectures.findByExerciceId(exerciceId).orElseThrow();
-        assertThat(relecture.getRelecteur().getId()).isNotEqualTo(2L);
-        assertThat(relecture.getRendueAt()).isNull();
+        var relecturesExercice = relectures.findByExerciceId(exerciceId);
+        assertThat(relecturesExercice).hasSize(1); // RG8 : pool insuffisant
+        assertThat(relecturesExercice.get(0).getRelecteur().getId()).isNotEqualTo(2L);
+        assertThat(relecturesExercice.get(0).getRendueAt()).isNull();
+        assertThat(resultat.getResponse().getContentAsString()).contains("\"relecturesAttendues\":1");
     }
 
     @Test
@@ -81,6 +84,29 @@ class Module5ExercicesTest {
 
         Long exerciceId = extraireLong(resultat.getResponse().getContentAsString(), "id");
         assertThat(relectures.findByExerciceId(exerciceId)).isEmpty(); // RG8
+    }
+
+    @Test
+    void depotAvecTroisPresentsCreeDeuxRelecturesDistinctes() throws Exception {
+        // Issue #41 : 3 présents hors auteur (3, 4, 5) → deux relectures créées,
+        // relecteurs distincts entre eux et de l'auteur (RG3/RG4 modifiée)
+        String code = ouvrirSessionAvecDeuxPresents(2, 3, 4, 5);
+        Long sessionId = sessions.findByCode(code).orElseThrow().getId();
+
+        MvcResult resultat = mockMvc.perform(post("/api/exercices")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sessionId\":" + sessionId + ",\"etudiantId\":2,\"lien\":\"https://github.com/amina/exo\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.relecteurAssignee").value(true))
+                .andExpect(jsonPath("$.relecturesAttendues").value(2))
+                .andReturn();
+
+        Long exerciceId = extraireLong(resultat.getResponse().getContentAsString(), "id");
+        var relecturesExercice = relectures.findByExerciceId(exerciceId);
+        assertThat(relecturesExercice).hasSize(2);
+        var relecteurIds = relecturesExercice.stream().map(r -> r.getRelecteur().getId()).toList();
+        assertThat(relecteurIds).doesNotContain(2L); // RG3 : jamais l'auteur
+        assertThat(relecteurIds.get(0)).isNotEqualTo(relecteurIds.get(1)); // distincts l'un de l'autre
     }
 
     @Test
@@ -179,8 +205,8 @@ class Module5ExercicesTest {
 
     // ---- utilitaires -------------------------------------------------------
 
-    /** Ouvre une session et y marque présents les étudiants donnés (voie formateur ; null = ignorer). */
-    private String ouvrirSessionAvecDeuxPresents(Integer etudiantA, Integer etudiantB) throws Exception {
+    /** Ouvre une session et y marque présents les étudiants donnés (voie formateur). */
+    private String ouvrirSessionAvecDeuxPresents(Integer... etudiantsPresents) throws Exception {
         MvcResult resultat = mockMvc.perform(post("/api/sessions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"titre\":\"Session MODULE 5\",\"promotionId\":1}"))
@@ -188,7 +214,7 @@ class Module5ExercicesTest {
                 .andReturn();
         String code = extraire(resultat.getResponse().getContentAsString(), "code");
 
-        for (Integer etudiantId : new Integer[] { etudiantA, etudiantB }) {
+        for (Integer etudiantId : etudiantsPresents) {
             if (etudiantId == null) {
                 continue;
             }
