@@ -109,10 +109,12 @@ const n3 = await call('POST', `/relectures/${RID1}`, { note: 17, commentaire: 'T
 check(15, 'Rendu relecture note 17 → 200 (EF5)', n3.status === 200 && n3.json.note === 17,
   `status=${n3.status} body=${n3.text.slice(0, 120)}`);
 
-// 16. EF11 : statut RELU + note, jamais l'identité du relecteur
+// 16. EF11 v2 : moyenne provisoire (une relecture sur deux attendues), jamais l'identité des relecteurs
 const d1 = await call('GET', `/exercices/${EX1}`);
-check(16, "EF11 : note visible, identité du relecteur absente de la réponse",
-  d1.status === 200 && d1.json.statut === 'RELU' && d1.json.note === 17 && !('relecteurId' in d1.json) && !('relecteur' in d1.json),
+check(16, "EF11 v2 : moyenne provisoire (1 rendue/2 attendues), identité des relecteurs absente",
+  d1.status === 200 && d1.json.statut === 'EN_ATTENTE' && d1.json.note === 17 && d1.json.provisoire === true
+    && d1.json.relecturesAttendues === 2 && d1.json.relecturesRendues === 1
+    && !('relecteurId' in d1.json) && !('relecteur' in d1.json),
   `status=${d1.status} body=${d1.text.slice(0, 200)}`);
 
 // 17. Modification avant clôture (EF9/RG7) : note 14 + historique
@@ -144,10 +146,11 @@ check(20, '2e dépôt → 201 avec relecteur assigné (pool RG5)',
   ex2.status === 201 && ex2.json.relecteurAssignee === true && REVIEWER2 !== null && REVIEWER2 !== BORIS,
   `status=${ex2.status} reviewer2=${REVIEWER2}`);
 
-// 21. EF11 avant rendu : note et commentaire null
+// 21. EF11 v2 avant rendu : note null, provisoire false, compteurs à jour
 const d2 = await call('GET', `/exercices/${EX2}`);
-check(21, 'EF11 avant rendu : EN_ATTENTE, note=null, commentaire=null',
-  d2.status === 200 && d2.json.statut === 'EN_ATTENTE' && d2.json.note === null && d2.json.commentaire === null,
+check(21, 'EF11 v2 avant rendu : EN_ATTENTE, note=null, provisoire=false, 2 attendues / 0 rendues',
+  d2.status === 200 && d2.json.statut === 'EN_ATTENTE' && d2.json.note === null
+    && d2.json.provisoire === false && d2.json.relecturesAttendues === 2 && d2.json.relecturesRendues === 0,
   `status=${d2.status} body=${d2.text.slice(0, 160)}`);
 
 // 22. Tableau (EF6/RG13/RG21) — cumul avec les données de démo V2 :

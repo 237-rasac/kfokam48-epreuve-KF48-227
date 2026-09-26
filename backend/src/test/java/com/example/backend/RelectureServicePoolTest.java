@@ -75,10 +75,12 @@ class RelectureServicePoolTest {
 
         service.assignerSiPossible(exercice);
 
+        // RG4 modifiée (#41) : deux relectures créées (pool de 2 présents hors auteur),
+        // relecteurs distincts de l'auteur (RG3) et l'un de l'autre
         var captor = org.mockito.ArgumentCaptor.forClass(Relecture.class);
-        org.mockito.Mockito.verify(relectures).save(captor.capture());
-        // RG3 : jamais l'auteur — le relecteur est Boris ou Clarisse (noms, ids null hors JPA)
-        assertThat(captor.getValue().getRelecteur().getNom()).isIn("Boris", "Clarisse");
+        org.mockito.Mockito.verify(relectures, org.mockito.Mockito.times(2)).save(captor.capture());
+        var noms = captor.getAllValues().stream().map(r -> r.getRelecteur().getNom()).toList();
+        assertThat(noms).containsExactlyInAnyOrder("Boris", "Clarisse");
     }
 
     @Test
@@ -108,8 +110,8 @@ class RelectureServicePoolTest {
         service.assignerSiPossible(exercice);
 
         var captor = org.mockito.ArgumentCaptor.forClass(Relecture.class);
-        org.mockito.Mockito.verify(relectures).save(captor.capture());
-        // Boris est exclu (déjà relecteur actif) → Clarisse est choisie
+        org.mockito.Mockito.verify(relectures, org.mockito.Mockito.times(1)).save(captor.capture());
+        // Boris est exclu (déjà relecteur actif) → une seule relecture, pour Clarisse
         assertThat(captor.getValue().getRelecteur().getNom()).isEqualTo("Clarisse");
     }
 

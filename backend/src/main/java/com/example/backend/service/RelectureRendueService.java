@@ -88,9 +88,17 @@ public class RelectureRendueService {
         }
 
         if (relecture.getRendueAt() == null) {
-            // Premier rendu (EF5) : l'exercice passe à RELU
+            // Premier rendu (EF5) : RELU seulement quand TOUTES les relectures
+            // attendues sont rendues (RG4 modifiée, issue #41) — un exercice à
+            // deux relecteurs reste EN_ATTENTE après le premier rendu
             relecture.rendre(noteEntiere, commentaire.trim(), horloge.maintenant());
-            exercice.setStatut(com.example.backend.domaine.StatutExercice.RELU);
+            long attendues = relectures.findByExerciceId(exercice.getId()).size();
+            long rendues = relectures.findByExerciceId(exercice.getId()).stream()
+                    .filter(r -> r.getRendueAt() != null)
+                    .count();
+            if (rendues >= attendues) {
+                exercice.setStatut(com.example.backend.domaine.StatutExercice.RELU);
+            }
         } else {
             // Modification d'une relecture déjà rendue (EF9/RG7) : historique
             historiques.save(new RelectureHistorique(
