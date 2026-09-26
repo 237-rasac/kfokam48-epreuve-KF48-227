@@ -46,11 +46,11 @@ const serveur = setupServer(
   // interceptées qui créaient des alertes parasites (plusieurs role="alert").
   http.get('/api/tableau', () =>
     Response.json([
-      { etudiantId: 1, nom: 'Amina Bello', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
-      { etudiantId: 2, nom: 'Boris Kamdem', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
-      { etudiantId: 3, nom: 'Clarisse Ngo', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
-      { etudiantId: 4, nom: 'David Etoundi', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
-      { etudiantId: 5, nom: 'Emma Fouda', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0 },
+      { etudiantId: 1, nom: 'Amina Bello', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0, moyenneProvisoire: false },
+      { etudiantId: 2, nom: 'Boris Kamdem', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0, moyenneProvisoire: false },
+      { etudiantId: 3, nom: 'Clarisse Ngo', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0, moyenneProvisoire: false },
+      { etudiantId: 4, nom: 'David Etoundi', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0, moyenneProvisoire: false },
+      { etudiantId: 5, nom: 'Emma Fouda', presences: 0, exercicesDeposes: 0, moyenne: null, relecturesEnAttente: 0, exercicesSansRelecteur: 0, moyenneProvisoire: false },
     ]),
   ),
   http.get('/api/sessions/10/exercices-sans-relecteur', () => Response.json([])),

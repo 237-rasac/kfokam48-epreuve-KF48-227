@@ -91,14 +91,15 @@ export function PanelExerciceEtudiant({ sessionId, etudiantId }: PanelExerciceEt
   if (etat.kind === 'exercice') {
     const { exercice } = etat
     const enAttente = exercice.statut === 'EN_ATTENTE'
+    const noteAffichee = exercice.note !== null
     return (
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Mon exercice</CardTitle>
           <CardDescription>
-            {enAttente
-              ? 'En attente de relecture.'
-              : 'Ton exercice a été relu — voici ta note et le commentaire.'}
+            {noteAffichee
+              ? 'Ta note est la moyenne de tes relectures — les commentaires sont ci-dessous.'
+              : 'En attente de relecture.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -112,7 +113,17 @@ export function PanelExerciceEtudiant({ sessionId, etudiantId }: PanelExerciceEt
               }
             >
               {enAttente ? 'En attente de relecture' : 'Relu'}
-            </span>
+            </span>{' '}
+            {/* EF11 v2 (issue #42) : badge « note provisoire » tant qu'un seul
+                relecteur a rendu — la moyenne peut encore bouger */}
+            {exercice.provisoire && (
+              <span
+                data-testid="badge-provisoire"
+                className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+              >
+                Note provisoire ({exercice.relecturesRendues}/{exercice.relecturesAttendues} relectures rendues)
+              </span>
+            )}
           </p>
           <p className="text-sm break-all">
             Lien :{' '}
@@ -120,13 +131,21 @@ export function PanelExerciceEtudiant({ sessionId, etudiantId }: PanelExerciceEt
               {exercice.lien}
             </a>
           </p>
-          {!enAttente && (
+          {noteAffichee && (
             <div className="rounded-lg border p-3">
               <p className="text-2xl font-bold">
-                Note : {exercice.note ?? '—'}/20
+                Note : {exercice.note}/20
               </p>
-              {exercice.commentaire && (
-                <p className="mt-1 text-sm text-muted-foreground">« {exercice.commentaire} »</p>
+              {/* EF11 v2 : tous les commentaires des relectures rendues, sans
+                  jamais l'identité des relecteurs (issue #42) */}
+              {exercice.commentaires.length > 0 && (
+                <ul className="mt-1 list-none space-y-1">
+                  {exercice.commentaires.map((commentaire, index) => (
+                    <li key={index} className="text-sm text-muted-foreground">
+                      « {commentaire} »
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           )}
