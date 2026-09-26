@@ -7,6 +7,76 @@ et le versionnage suit [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-26
+
+Sprint 2 : correctif du bug de présences concurrentes puis mise en œuvre du
+changement de besoin « double relecture » (enveloppe étape 3) — chaque
+exercice est relu par **deux pairs différents**, la note retenue est la
+**moyenne des deux**, marquée **provisoire** tant qu'une deuxième relecture
+est attendue. Contrat `api/contrat.yaml` passé en **v2.0.0** (PR #38).
+Issues #39 à #42 fermées, PR #43 à #46 fusionnées.
+
+### Ajouté
+
+#### Backend
+
+- **MODULE 11 (#40, PR #44)** — Migration **V6** versionnée :
+  `DROP CONSTRAINT uk_relecture_exercice`,
+  `ADD CONSTRAINT uk_relecture_exercice_relecteur UNIQUE (exercice_id,
+  relecteur_id)`. V1–V5 intacts ; la base de démonstration survit à la
+  migration (la relecture existante reste valide, sa note devient
+  provisoire). Validée sur H2 (`mvnw test`) et sur PostgreSQL 16 réel
+  (`docker compose up`, migrations V1→V6 appliquées, données préservées).
+- **MODULE 12 (#41, PR #45)** — Deux relecteurs à l'inscription d'un
+  exercice (EF4/RG4 modifiée) : deux relectures distinctes entre elles et de
+  l'auteur (RG3/RG5) ; pool insuffisant → une seule relecture, voire aucune
+  (RG8) ; `POST /api/exercices/{id}/assigner` complété vers le second
+  relecteur, 409 `RELECTURE_DEJA_ASSIGNEE` par (exercice, relecteur) et
+  au-delà de deux.
+- **ExerciceDetail v2 (EF11/RG17)** — `note` = moyenne (double) des
+  relectures rendues, `provisoire`, `relecturesAttendues`,
+  `relecturesRendues`, `commentaires[]` — jamais l'identité des relecteurs.
+  Un exercice à relecteur unique dont la note est rendue est définitif
+  (convention §7 : le provisoire n'a de sens que si une deuxième relecture
+  est attendue).
+- **Statut (EF5)** — `RELU` quand toutes les relectures attendues sont
+  rendues ; un exercice à deux relecteurs reste EN_ATTENTE après le premier
+  rendu.
+- **Tableau (RG13)** — moyenne par étudiant recalculée sur les moyennes
+  d'exercices, flag `moyenneProvisoire` (héritage du caractère provisoire).
+
+#### Frontend
+
+- **MODULE 13 (#42, PR #46)** — `types.ts`/`endpoints.ts` alignés sur le
+  contrat v2 ; panel étudiant : badge « Note provisoire (n/m relectures
+  rendues) » tant qu'un seul relecteur a rendu, moyenne affichée, liste des
+  commentaires multiples — sans identité des relecteurs (EF11) ; tableau
+  formateur : astérisque sur la moyenne provisoire (moyenne toujours
+  calculée côté API) ; écran relecteur inchangé fonctionnellement ; handlers
+  MSW complétés pour les nouvelles formes.
+
+### Corrigé
+
+- **Présences concurrentes (#39, PR #43)** — deux `POST /api/presences`
+  quasi simultanés (même code, deux étudiants) perdaient une présence : le
+  contrôle RG15 puis `save()` formaient un check-then-act non atomique, la
+  contrainte `uk_presence_session_etudiant` (V1) rejetait le second insert
+  en `DataIntegrityViolationException` traduite en 500 au lieu du 409
+  contractuel `DEJA_PRESENT`. Correctif : interception ciblée autour du
+  `save()`, la contrainte sert d'arbitre atomique — le perdant sort en 409
+  `DEJA_PRESENT` et les deux étudiants distincts en rafale apparaissent tous
+  les deux. Démarche exigée par l'issue : test d'intégration rouge committé
+  avant le correctif (entrelacement forcé par une passerelle de test qui
+  gèle le premier `save()` avant son INSERT), PR séparée du changement de
+  besoin.
+
+### Tests
+
+- Backend : 67 tests verts (55 maintenus + test de reproduction #39, tests
+  migration V6 et MODULE 12). Frontend : 28 tests verts (26 maintenus +
+  badge provisoire et moyenne définitive). Scénario E2E aligné sur les
+  formes v2.
+
 ## [0.1.0] — 2026-09-25
 
 Jalon `v0.1` : les dix modules du Sprint 1 sont livrés (issues #13 à #22),
@@ -97,5 +167,6 @@ Docker réelle (parcours formateur / étudiant / relecteur, clôture et blocage)
   (RG6) ; le champ est désérialisé en `BigDecimal` et la validation métier
   vérifie l'intégralité.
 
-[Unreleased]: https://github.com/237-rasac/kfokam48-epreuve-KF48-227/compare/v0.1...HEAD
+[Unreleased]: https://github.com/237-rasac/kfokam48-epreuve-KF48-227/compare/v0.2...HEAD
+[0.2.0]: https://github.com/237-rasac/kfokam48-epreuve-KF48-227/compare/v0.1...v0.2
 [0.1.0]: https://github.com/237-rasac/kfokam48-epreuve-KF48-227/releases/tag/v0.1
