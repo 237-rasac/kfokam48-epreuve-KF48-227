@@ -215,3 +215,91 @@ Correctif bug et changement de besoin sont deux sujets : deux branches,
 deux PR. L'analyse (cahier v2, RG4/RG17, contrat v2.0.0, diagrammes D2/D4)
 est déjà commiteé sur `docs/double-relecture` (**PR #38**) — le commit
 documentaire précède tout code, conformément à l'enveloppe (point 2.1).
+
+## 2026-09-26 — Réalisation du Sprint 2
+
+Les quatre issues du milestone Sprint 2 sont fermées, chacune par sa propre PR
+(#43 à #46), un sujet = une branche = une PR, comme annoncé.
+
+### Bug #39 — présences concurrentes (PR #43)
+
+- **Test d'abord** : `Bug39PresencesConcurrentesTest` commité avant tout
+  correctif (commit `28683e1` sur `fix/presences-concurrentes`). Le test ne
+  course pas au timing : une passerelle de test (proxy `@Primary` sur le
+  repository) gèle le premier `save()` AVANT son INSERT ; la seconde requête
+  traverse alors le contrôle RG15 pendant que la première transaction est en
+  vol — entrelacement déterministe, reproductible à chaque exécution.
+  Rouge constaté : le perdant sort en `[201, 500]` au lieu de `[201, 409]`.
+- **Correctif** (commit `48e82af`) : interception ciblée de
+  `DataIntegrityViolationException` autour du `save()` dans
+  `PresenceService.marquer()` → 409 `DEJA_PRESENT`. La contrainte
+  `uk_presence_session_etudiant` (V1) sert d'arbitre atomique de la course.
+- **Arbitrage** : le verrou pessimiste sur la session (l'issue proposait
+  « et/ou ») a été écarté — avec une transaction lente ou gelée, il sérialise
+  les requêtes et peut mener à un deadlock ; l'interception seule suffit et
+  le contrôle applicatif RG15 reste en place pour le cas nominal.
+- Fusion PR #43 (`1dfaf78`), issue clôturée automatiquement (`Closes #39`).
+
+### MODULE 11 — migration V6 (issue #40, PR #44)
+
+- `V6__deux_relectures_par_exercice.sql` : drop de `uk_relecture_exercice`,
+  unique `(exercice_id, relecteur_id)`. V1–V5 intacts (prouvable au git log
+  de la PR : la branche n'ajoute que deux fichiers).
+- Données de démo V2 testées à la migration sur H2 (tests dédiés : survie de
+  la relecture existante, second relecteur distinct accepté, même relecteur
+  rejeté, table `relecture_historique` de V4 fonctionnelle) ET sur
+  PostgreSQL 16 réel via `docker compose up` : V1→V6 appliquées, les trois
+  relectures existantes (dont une non rendue) préservées, contrainte
+  vérifiée active sur la base réelle. Ligne de test insérée lors de la
+  vérification nettoyée ensuite.
+- Fusion PR #44 (`ace4b4c`), issue clôturée.
+
+### MODULE 12 — backend contrat v2 (issue #41, PR #45)
+
+- Deux relecteurs distincts à l'inscription (RG4 modifiée) ; pool
+  insuffisant → une seule relecture, voire aucune (RG8).
+- **Bug d'assignation trouvé et corrigé** : la répartition issue #17 (ne pas
+  réassigner un relecteur actif) excluait aussi les relectures de l'exercice
+  en cours — le second relecteur était donc systématiquement écarté du pool
+  (la première relecture venait d'être créée quelques lignes plus tôt).
+  Le filtre ne considère plus que les relectures des AUTRES exercices de la
+  session.
+- Statut RELU seulement quand toutes les relectures attendues sont rendues
+  (EF5) ; `ExerciceDetail` v2 (moyenne double, `provisoire`, compteurs,
+  `commentaires[]`, jamais l'identité des relecteurs) ; `TableauService`
+  recalculé sur les moyennes d'exercices avec `moyenneProvisoire` (RG13) ;
+  `assigner` complété vers le second relecteur, 409 au-delà de deux ou en
+  doublon.
+- Convention §7 appliquée : un exercice à relecteur unique dont la note est
+  rendue est définitif — couvert par un test dédié.
+- 67 tests backend verts (5 nouveaux cas d'acceptation dans
+  `Module12DeuxRelecteursTest`, ajustements des tests MODULE 5 et du pool
+  pour les deux relecteurs). Scénario E2E aligné sur les formes v2
+  (vérifications 16 et 21). Fusion PR #45 (`5700212`), issue clôturée.
+
+### MODULE 13 — frontend contrat v2 (issue #42, PR #46)
+
+- `types.ts` : `ExerciceDetail` v2 et `LigneTableau.moyenneProvisoire` ;
+  endpoints inchangés (mêmes routes, seules les formes de réponse évoluent).
+- Panel étudiant : badge « Note provisoire (n/m relectures rendues) » tant
+  qu'un seul relecteur a rendu, moyenne affichée, les commentaires multiples
+  listés — jamais l'identité des relecteurs (assertion anti-fuite sur tout
+  le bloc exercice). Tableau formateur : astérisque + tooltip sur la moyenne
+  provisoire (le calcul reste côté API, RG21 conservé — périmètre assumé,
+  le tableau n'expose pas le détail des relectures). Écran relecteur
+  inchangé fonctionnellement.
+- Handlers MSW complétés pour les nouvelles formes (fixtures `LigneTableau`
+  à jour dans ecrans/module2/module4). `npm run build` et `tsc -b` verts,
+  28 tests frontend (2 nouveaux). Fusion PR #46 (`a454c0d`), issue clôturée.
+
+### État du Sprint 2
+
+- 4/4 issues fermées (#39 à #42), PR #43 à #46 fusionnées sur `main`,
+  branches supprimées après fusion.
+- Tests : 67 backend / 28 frontend verts ; migrations V1→V6 validées sur H2
+  et PostgreSQL 16 réel.
+- Périmètre sacrifié (ENF1) et extensions non traitées (EF12, EF9) : voir
+  « Ce que je sacrifie, et pourquoi » ci-dessus — inchangé.
+- Le contrat v2.0.0 est implémenté de bout en bout : dépôt avec deux
+  relecteurs, rendus, moyenne provisoire puis définitive, tableau et panel
+  étudiant alignés.
