@@ -83,9 +83,17 @@ export function EcranTableau({ promotions, etudiants }: EcranTableauProps) {
                     <td className="py-2 pr-3">{ligne.nom}</td>
                     <td className="py-2 pr-3">{ligne.presences}</td>
                     <td className="py-2 pr-3">{ligne.exercicesDeposes}</td>
-                    {/* RG21 : moyenne null → « — » (pas de recalcul côté front) */}
+                    {/* RG21 : moyenne null → « — » (pas de recalcul côté front).
+                        Issue #41 : flag moyenneProvisoire → astérisque + titre. */}
                     <td className="py-2 pr-3 font-medium">
-                      {ligne.moyenne === null ? '—' : ligne.moyenne.toFixed(2)}
+                      {ligne.moyenne === null ? (
+                        '—'
+                      ) : (
+                        <span title={ligne.moyenneProvisoire ? 'Moyenne provisoire : une relecture attendue n\'est pas encore rendue' : undefined}>
+                          {ligne.moyenne.toFixed(2)}
+                          {ligne.moyenneProvisoire && <sup className="text-amber-600 dark:text-amber-400">*</sup>}
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 pr-3">{ligne.relecturesEnAttente}</td>
                     <td className="py-2">

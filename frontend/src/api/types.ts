@@ -41,13 +41,20 @@ export interface Exercice {
   deposeAt: string
 }
 
-/** Vue étudiant — sans identité du relecteur (EF11). */
+/**
+ * Vue étudiant v2 — sans identité des relecteurs (EF11/RG17, contrat v2.0.0).
+ * note = moyenne des relectures rendues ; provisoire tant qu'une deuxième
+ * relecture est attendue et pas encore rendue.
+ */
 export interface ExerciceDetail {
   id: number
   lien: string
   statut: StatutExercice
   note: number | null
-  commentaire: string | null
+  provisoire: boolean
+  relecturesAttendues: number
+  relecturesRendues: number
+  commentaires: string[]
 }
 
 export interface Relecture {
@@ -78,4 +85,6 @@ export interface LigneTableau {
   relecturesEnAttente: number
   /** Issue #20 : exercices EN_ATTENTE sans relecteur. */
   exercicesSansRelecteur: number
+  /** Issue #41 : la moyenne hérite du caractère provisoire d'un exercice. */
+  moyenneProvisoire: boolean
 }
