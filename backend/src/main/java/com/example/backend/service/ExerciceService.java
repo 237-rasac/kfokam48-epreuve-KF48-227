@@ -3,6 +3,7 @@ package com.example.backend.service;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,10 +70,12 @@ public class ExerciceService {
 
         Exercice exercice = exercices.save(new Exercice(session, etudiant, lien.trim(), horloge.maintenant()));
 
-        // EF4 : assignation immédiate d'un relecteur parmi les présents (RG5)
+        // EF4 : assignation immédiate de deux relecteurs parmi les présents (RG4
+        // modifiée) — deux, une ou aucune selon le pool (RG8, issue #41)
         relectureService.assignerSiPossible(exercice);
-        // On attache la relecture éventuelle au champ transitoire pour la réponse (relecteurAssignee)
-        exercice.setRelecture(relectures.findByExerciceId(exercice.getId()).orElse(null));
+        // On attache les relectures éventuelles au champ transitoire pour la réponse
+        List<Relecture> assignees = relectures.findByExerciceId(exercice.getId());
+        exercice.setRelectures(assignees);
         return exercice;
     }
 
@@ -91,19 +94,24 @@ public class ExerciceService {
                     "Une relecture a déjà commencé, le lien ne peut plus être remplacé.");
         }
         exercice.setLien(lien.trim());
-        return exercices.save(exercice);
+        Exercice enregistre = exercices.save(exercice);
+        // Re-attache pour la réponse (relecteurAssignee), comme à l'inscription
+        List<Relecture> assignees = relectures.findByExerciceId(exerciceId);
+        enregistre.setRelectures(assignees);
+        return enregistre;
     }
 
     /**
-     * EF11 : le relecté voit son statut, sa note et son commentaire, sans l'identité
-     * du relecteur. Note/commentaire null tant que la relecture n'est pas rendue.
+     * EF11 (v2, issue #41) : le relecté voit son statut, la moyenne des
+     * relectures rendues, le flag provisoire et les commentaires — sans l'identité
+     * des relecteurs. Note null tant qu'aucune relecture n'est rendue.
      */
     @Transactional(readOnly = true)
     public Exercice consulterAvecNote(Long exerciceId) {
         Exercice exercice = exercices.findById(exerciceId)
                 .orElseThrow(() -> new ErreurMetierException("EXERCICE_INCONNU", 404, "Exercice inconnu."));
-        Relecture relecture = relectures.findByExerciceId(exerciceId).orElse(null);
-        exercice.setRelecture(relecture);
+        List<Relecture> relecturesExercice = relectures.findByExerciceId(exerciceId);
+        exercice.setRelectures(relecturesExercice);
         return exercice;
     }
 

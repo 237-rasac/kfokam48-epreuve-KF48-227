@@ -17,7 +17,8 @@ public interface RelectureRepository extends JpaRepository<Relecture, Long> {
 
     boolean existsByExerciceIdAndRendueAtIsNotNull(Long exerciceId);
 
-    java.util.Optional<Relecture> findByExerciceId(Long exerciceId);
+    /** Toutes les relectures d'un exercice (RG4 modifiée : une ou deux, jamais deux pour le même relecteur). */
+    List<Relecture> findByExerciceId(Long exerciceId);
 
     /** Relectures en cours (non rendues) d'une session, pour la répartition des relecteurs. */
     @org.springframework.data.jpa.repository.Query(
