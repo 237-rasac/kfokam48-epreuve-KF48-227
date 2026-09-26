@@ -6,10 +6,12 @@ sessions de cours par **code de présence** et **relecture d'exercices entre pai
 - Le **formateur** ouvre une session, obtient un code valable 15 minutes, ajoute
   des présences manuellement, suit le tableau de bord par promotion et clôture la session.
 - L'**étudiant** marque sa présence avec le code, dépose le lien de son exercice,
-  remplace son lien tant que personne n'a relu, et voit sa note avec le commentaire
-  (sans jamais connaître le nom du relecteur).
-- Le **relecteur** est tiré au sort parmi les présents, rend une note entière 0–20
-  avec commentaire, et peut corriger sa note tant que la session n'est pas clôturée.
+  remplace son lien tant que personne n'a relu, et voit la moyenne de ses
+  relectures (badge « note provisoire » tant qu'un relecteur sur deux n'a pas
+  rendu) avec les commentaires — sans jamais connaître le nom des relecteurs.
+- Le **relecteur** est tiré au sort parmi les présents (deux par exercice, distincts),
+  rend une note entière 0–20 avec commentaire, et peut corriger sa note tant que
+  la session n'est pas clôturée.
 
 Périmètre conforme au cahier des charges (`docs/CAHIER_DES_CHARGES.md`) : pas
 d'authentification par mot de passe (l'identité est choisie dans une liste), les
@@ -40,18 +42,18 @@ Arrêt : `docker compose down` (ajouter `-v` pour effacer les données).
 ## Architecture
 
 ```
-api/contrat.yaml          Contrat OpenAPI (5 opérations imposées + extensions EF1-EF12)
+api/contrat.yaml          Contrat OpenAPI v2 (5 opérations imposées + extensions EF1-EF12)
 backend/                  Spring Boot 4 (Java 25) + PostgreSQL 16 + Flyway
   src/main/.../domaine/     Entités JPA (validation du schéma, ddl-auto=validate)
   src/main/.../repository/  Spring Data JPA
   src/main/.../service/     Règles métier (RG1-RG21)
   src/main/.../api/         Contrôleurs REST + DTOs alignés sur le contrat
   src/main/.../erreur/      Format d'erreur unique { code, message } (ENF4)
-  src/main/resources/db/migration/  V1 schéma, V2 données démo, V3-V5 évolutions
+  src/main/resources/db/migration/  V1 schéma, V2 données démo, V3-V6 évolutions
 frontend/                 React 19 + TypeScript + Vite + Tailwind
   src/api/                  Couche API dédiée (fetch centralisé, erreurs { code, message })
   src/pages/                Écrans : sélection, formateur, étudiant, relecteur
-docs/                     Cahier des charges, diagrammes D1-D4, journal, rapports
+docs/                     Cahier des charges, diagrammes D1-D4, journal
 ```
 
 ### Règles métier principales
@@ -61,8 +63,8 @@ docs/                     Cahier des charges, diagrammes D1-D4, journal, rapport
 | RG1 : code expiré 15 min après l'ouverture | `SessionService.DUREE_CODE` |
 | RG2 : plus de présence après clôture | `PresenceService` (410 `SESSION_CLOTUREE`) |
 | RG3 : jamais relecteur de son propre exercice | assignation + rendu (403 `AUTO_RELECTURE`) |
-| RG4 : un seul relecteur par exercice | `uk_relecture_exercice` + service (409) |
-| RG5 : relecteur au hasard parmi les présents | `RelectureService.assignerSiPossible` |
+| RG4 : deux relecteurs distincts par exercice | `uk_relecture_exercice_relecteur` (V6) + service (409) |
+| RG5 : relecteurs au hasard parmi les présents | `RelectureService.assignerSiPossible` |
 | RG6 : note entière 0–20 | `RelectureRendueService` (400 `NOTE_INVALIDE`) |
 | RG7/EF9 : note modifiable avant clôture, historique | table `relecture_historique` (V4) |
 | RG8 : pas de relecteur disponible → exercice EN_ATTENTE | flag `relecteurAssignee`, panel formateur |
@@ -80,9 +82,9 @@ Contrat complet : `api/contrat.yaml`. Principales opérations :
 | `POST /api/sessions/{id}/cloture` | Clôturer la session (EF8) |
 | `GET /api/sessions/{id}/presences` | Présences d'une session |
 | `POST /api/presences` | Marquer sa présence (ou ajout formateur via `source`) |
-| `POST /api/exercices` | Déposer son exercice + assignation du relecteur |
+| `POST /api/exercices` | Déposer son exercice + assignation de deux relecteurs |
 | `PATCH /api/exercices/{id}` | Remplacer le lien (EF10) |
-| `GET /api/exercices/{id}` | Statut, note, commentaire — sans relecteur (EF11) |
+| `GET /api/exercices/{id}` | Statut, moyenne, provisoire, commentaires — sans relecteurs (EF11) |
 | `POST /api/exercices/{id}/assigner` | Assignation manuelle du relecteur (formateur) |
 | `POST /api/relectures/{id}` | Rendre (puis modifier) une relecture |
 | `GET /api/etudiants/{id}/relectures` | Relectures en attente d'un étudiant |
@@ -94,8 +96,8 @@ Catalogue des codes : `x-codes-erreur` dans le contrat.
 ## Tests
 
 ```bash
-cd backend && ./mvnw test      # 55 tests (H2 en mémoire, sans base locale — ENF6)
-cd frontend && npm test        # 26 tests vitest (msw), build : npm run build
+cd backend && ./mvnw test      # 67 tests (H2 en mémoire, sans base locale — ENF6)
+cd frontend && npm test        # 28 tests vitest (msw), build : npm run build
 ```
 
 ## Configuration
