@@ -41,9 +41,9 @@ public class Exercice {
     @Column(name = "depose_at", nullable = false)
     private LocalDateTime deposeAt;
 
-    /** Non persisté : relecture attachée en lecture pour EF11 (note + commentaire, sans relecteur). */
+    /** Non persisté : relectures attachées en lecture pour EF11 (moyenne + commentaires, sans relecteurs). */
     @jakarta.persistence.Transient
-    private Relecture relecture;
+    private java.util.List<Relecture> relectures = new java.util.ArrayList<>();
 
     protected Exercice() {
         // JPA
@@ -89,11 +89,40 @@ public class Exercice {
         return deposeAt;
     }
 
-    public Relecture getRelecture() {
-        return relecture;
+    public java.util.List<Relecture> getRelectures() {
+        return relectures;
     }
 
-    public void setRelecture(Relecture relecture) {
-        this.relecture = relecture;
+    public void setRelectures(java.util.List<Relecture> relectures) {
+        this.relectures = relectures == null ? new java.util.ArrayList<>() : relectures;
+    }
+
+    /** Relectures déjà rendues (EF11 v2). */
+    public java.util.List<Relecture> relecturesRendues() {
+        return relectures.stream()
+                .filter(r -> r.getRendueAt() != null)
+                .toList();
+    }
+
+    /**
+     * RG17/RG8 : le provisoire n'a de sens que si une deuxième relecture est
+     * attendue et pas encore rendue. Un exercice à relecteur unique dont la
+     * note est rendue est définitif (convention §7 du cahier).
+     */
+    public boolean estProvisoire() {
+        long rendues = relecturesRendues().size();
+        return !relectures.isEmpty() && rendues > 0 && rendues < relectures.size();
+    }
+
+    /** Moyenne des notes des relectures rendues, sur 20 (RG17) — null si aucune. */
+    public Double moyenneDesNotes() {
+        java.util.List<Integer> notes = relecturesRendues().stream()
+                .map(Relecture::getNote)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        if (notes.isEmpty()) {
+            return null;
+        }
+        return notes.stream().mapToInt(Integer::intValue).average().orElse(0d);
     }
 }
